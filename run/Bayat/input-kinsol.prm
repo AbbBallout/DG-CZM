@@ -1,0 +1,8 @@
+
+subsection main
+	set para_f       = 0.01 ## paraf any float variable
+	set cycles	 = 1
+
+end 
+
+

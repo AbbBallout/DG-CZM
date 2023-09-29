@@ -1,0 +1,15 @@
+
+
+subsection main
+	set E		=100
+	set nu           = 0.3
+	set cycles	 = 3
+	set initial_refinement = 5
+	set degree           = 2
+	set displacementx  = 0
+	set displacementy  = 1e-3
+	set error          = 1e-5 
+	set step_length    = 1
+end 
+
+

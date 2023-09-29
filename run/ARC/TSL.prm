@@ -1,0 +1,36 @@
+
+
+subsection main
+	set E		 = 1e+2
+	set nu           = 0.3
+        set Ep		 = 1e+2
+	set nup           = 0.3
+	set tsl_law      = exponential   #exponential|linear
+	set is_implicit  = false
+	set regularization = 1e-12
+	set sig_c          = 0.5
+	set delta_c          = 0.02
+	set lambda_f       =0.5
+	set m              = 2
+	set beta           = 1
+	set cycles	 =  50
+	set geometry     = reactangle   #reactangle
+	set is_special_BC = true
+	set initial_refinement =2
+	set degree           = 1
+	set quadrature       = lobatto       #trap|gauss|lobatto|gauss-reduced|lobatto-over
+	set n                = 1    # stabilizing n  
+	set displacementx  =  0    #or force
+	set displacementy  = 1e-3   #or force
+	set error          = 1e-6
+	set step_length    = 0.98   #step length for Newton DG when flattening 
+	set symmetry       = -1  # DG symmetry: -1 for symmetric DG  [-1,0,1] 
+	set penalty_factor =  1e+2
+	set is_user_penalty = false # if true set penalty to the defined val below 
+		set penalty= 1e+10
+	set unloading=999
+	set reloading=3099
+	set output_frequency=1
+end 
+
+

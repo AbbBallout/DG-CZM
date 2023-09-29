@@ -1,0 +1,82 @@
+subsection main
+	set testing_I = 0
+	set testing_F = 0
+	 
+	set degree           = 1
+	set quadrature       = gauss       #gauss|lobatto|gauss-reduced
+	set symmetry         = 0
+ 	set penalty_factor   = 10
+
+	subsection geometry
+		set geometry = reactangle       #reactangle|half_matrix|matrix|hole|shaft|ENF
+		set initial_refinement= 4
+		set E1 = 1e+2
+		set nu1= 0.3
+		set E2 = 1e+2
+		set nu2= 0.3
+		set is_distorted = false
+	end
+	
+	subsection CZM
+		set is_everywhere = false
+		set type    = intrinsic   #extrinsic|intrinsic
+		set friction_coff = 0
+
+		### interface ####
+		set sig_ics = 0.5
+		set sig_icn = 0.5
+		set delta_ics = 0.00001
+		set delta_icn = 0.00001
+		set G_ics  =  0.02
+		set G_icn  = 0.02
+
+		### bulk ###
+		set sig_cs = 30
+		set sig_cn = 30
+		set delta_cs = 0.00003
+		set delta_cn = 0.00003
+		set G_cs  =  0.1
+		set G_cn  = 0.1
+		
+		set with_penetration = false
+		set penetration_penalty = 1e+6		
+	end
+	
+	subsection robustness
+		####
+		set newton_relaxation = 1.0
+		set with_adaptive_relaxation = true
+
+		####
+		set always_check_for_damage_and_unloading =true
+				
+		####
+		set ignore_non_convergence = false
+				
+		####
+		set update_damage_once = false
+		set max_external_iterations = 0  	# set to 0 to do non 
+		set external_iterations_error = 1e-6
+		set damage_error          = 1e-6
+	end
+	
+	subsection adaptivity
+	 	set with_adaptivity  = false
+	 	set theshold_stress_factor = 0.8    #less than one
+	 	set max_cell_level  = 2
+	end
+	
+	
+	subsection solver_control
+		set cycles= 80
+		set max_nonlin_iter = 150
+		set error = 1e-8
+		set displacementx = 2e-3
+		set displacementy = 1e-3
+		set unloading = 2599
+		set reloading = 3599
+		set output_directory = ./output1
+		set file_name = forces1
+		set output_frequency = 1
+	end	
+end

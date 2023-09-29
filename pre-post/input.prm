@@ -1,0 +1,10 @@
+subsection main
+	set Poisson     = 0.2
+	set Young       = 70000
+	set k_res       = 1.0e-6    
+	set alpha_0     = 0.0
+	set ell         = 6 
+	set Gc          = 0.5
+	set error_tol   = 1e-5 
+	set damage_type = 1       # 1 or 2 
+end 

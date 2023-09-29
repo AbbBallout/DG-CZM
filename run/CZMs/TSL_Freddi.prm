@@ -1,0 +1,66 @@
+# Listing of Parameters
+# ---------------------
+subsection main
+  set E                  = 0
+
+  set beta               = 0
+
+  set cycles             = 0
+
+  set degree             = 0
+
+  set delta_c            = 0
+
+  set delta_ci           = 0
+
+  set displacementx      = 0
+
+  set displacementy      = 0
+
+  set error              = 0
+  set geometry           = reactangle
+
+  set initial_refinement = 0
+
+  set is_TSL_everywhere  = false
+
+  set is_distorted       = false
+
+  set is_implicit        = false
+
+  set is_user_penalty    = false
+
+  set lambda_f           = 0
+
+  set lambda_fi          = 0
+
+  set m                  = 0
+
+  set n                  = 0
+
+  set nu                 = 0
+
+  set output_frequency   = 0
+
+  set penalty            = 0
+
+  set penalty_factor     = 0
+
+  set quadrature         = trap
+
+  set regularization     = 0
+
+  set reloading          = 0
+
+  set sig_c              = 0
+
+  set sig_ci             = 0
+
+  set symmetry           = 0
+
+  set testing            = 0
+
+  set unloading          = 0
+end
+
+

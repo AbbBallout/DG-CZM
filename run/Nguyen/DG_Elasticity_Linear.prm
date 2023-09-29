@@ -1,0 +1,15 @@
+subsection main
+	set E		=100
+	set nu           = 0
+	set cycles	 = 3
+	set initial_refinement = 3
+	set degree           = 1
+	set displacementx  = 0
+	set displacementy  = 1e-3
+	
+	set symmetry       = -1     # DG symmetry: -1 for symmetric DG  [-1,0,1] 
+	set is_user_penalty = false # if true set penalty to the defined val below 
+	set penalty= 100
+end 
+
+

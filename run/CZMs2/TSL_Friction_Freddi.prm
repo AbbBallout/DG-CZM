@@ -1,0 +1,40 @@
+
+
+subsection main
+	set testing	= 1
+	set E		 = 1e+2
+	set nu           = 0.3
+	set Ep           = 1e+2
+	set nup          = 0.3
+	set is_TSL_everywhere  = false
+	set regularization = 1e-6
+	set TSL_law        = damage_freddi   #damage_freddi
+	set is_implicit    = false
+	set sig_c          = 0  
+	set sig_ci	   = 0.1
+	set delta_c	   = 0
+	set delta_ci	   = 0.001			            
+	set ku		    = 0
+	set kui		   = 10   
+	set m              = 1.0
+	set coff           = 0.5 
+	
+	set geometry     = reactangle   #reactangle|shear|peeling|hole|half_matrix|full_matrix 
+	set cycles	 = 70
+	set initial_refinement =3
+	set is_distorted     = false
+	set degree           = 1
+	set quadrature       = gauss       #gauss|lobatto|gauss-reduced
+	set displacementx  = 2.5e-3
+	set displacementy  = -1.5e-5
+	set error          = 1e-8
+	set symmetry       =  0   # DG symmetry: -1 for symmetric DG  [-1,0,1] 
+	set penalty_factor = 100
+	set is_user_penalty = false # if true set penalty to the defined val below 
+		set penalty= 1e+4
+	set unloading=2099
+	set reloading=4299
+	set output_frequency=1
+end 
+
+

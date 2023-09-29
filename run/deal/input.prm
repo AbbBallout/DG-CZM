@@ -1,0 +1,8 @@
+subsection main
+	set para_i       = 1
+	set para_f       = 0.001 ## paraf any variable but I use it for blending 
+	set cycles	 = 28
+	set fracture_at   = 15 ##approx fracture starts at this cycle 
+	set t_0           = 1
+	set step_length   = 0.1 
+end 

@@ -1,0 +1,47 @@
+
+
+subsection main
+	set E		 = 1e+3  
+	set nu           = 0.3
+        set Ep		 = 1e+3
+	set nup           = 0.3
+	set is_TSL_everywhere  = false
+	set tsl_law      = linear   #exponential|linear
+	set is_implicit  = false
+	set regularization = 1e-10
+	
+	set sig_c          = 30    
+	set sig_cp         = 0
+	set sig_ci	   = 1  		#interface
+	set delta_c        = 0
+	set delta_cp       = 0 
+	set delta_ci       = 0              #interface
+	set lambda_f       = 0
+	set lambda_fp      = 0
+	set lambda_fi      = 0.04                #interface
+	set m              = 1.0
+	set beta           = 1
+	set viscosity      = 0.0
+	
+	set cycles	 =  30
+	set geometry     = sheer   #reactangle|sheer|beam|peeling|delamitation|signle-edge|matrix|half_matrix
+	set is_special_BC = false
+	set initial_refinement =3
+	set degree           = 1
+	set special_quadarature_everywhere = false  ##onlye for tsl_everywhere_false
+	set quadrature       = lobatto       #trap|gauss|lobatto|gauss-reduced|lobatto-over
+	set n                = 1.0    # stabilizing n  
+	set displacementx  = 1e-3    
+	set displacementy  = 0   
+	set error          = 1e-8
+	set step_length    = 0.98   #step length for Newton DG when flattening 
+	set symmetry       = -1  # DG symmetry: -1 for symmetric DG  [-1,0,1] 
+	set penalty_factor =  1e+2
+	set is_user_penalty = false # if true set penalty to the defined val below 
+		set penalty= 1e+10
+	set unloading=2799
+	set reloading=5599
+	set output_frequency=1
+end 
+
+

@@ -1,0 +1,21 @@
+#check lambda and mu
+#Stabilization for penetration
+# fix julia plotting 
+
+subsection main
+	set para_f       = 0.01 ## paraf any float variable
+	set cycles	 = 400
+	set initial_refinement = 2
+	set fracture_at   = 25 ##approx fracture starts at this cycle 
+	set t_0           = 3
+	set step_length   = 0.4  ## for nonlinear solver
+	set displacementx = 0
+	set displacementy = 1e-3
+	set small         =1e-5 #small number for stabilizing initial non-lin iterations
+	set m             =1 #concavity 
+	set unlaoding_begin= 75
+	set unlaoding_end  = 160
+
+end 
+
+

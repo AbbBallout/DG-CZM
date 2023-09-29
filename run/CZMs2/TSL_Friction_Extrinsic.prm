@@ -1,0 +1,32 @@
+
+
+subsection main
+	set E		 = 1e+2
+	set nu           = 0.3
+	set Ep           = 1e+2
+	set nup          = 0.3
+	set sig_c          = 0  
+	set sig_ci	   = 0.1
+	set delta_c	   = 0
+	set delta_ci	   = 0.001			            
+	set ku		    = 0
+	set kui		   = 1   
+	set friction_coff  = 0 
+	 
+	set adaptivity   = true 
+	set cycles	 = 21
+	set initial_refinement =1
+	set is_distorted     = false
+	set degree           = 1
+	set quadrature       = gauss       #gauss|lobatto|gauss-reduced
+	set displacementx  = 2e-4
+	set displacementy  = 2e-4
+	set error          = 1e-8
+	set symmetry       =  0   # DG symmetry: -1 for symmetric DG  [-1,0,1] 
+	set penalty_factor = 100
+	set unloading=2099
+	set reloading=3000
+	set output_frequency=1
+end 
+
+

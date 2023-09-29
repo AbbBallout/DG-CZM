@@ -1,0 +1,27 @@
+
+
+subsection main
+	set E		= 2e+2
+	set nu           = 0
+	set cycles	 = 70
+	set initial_refinement = 3
+	set degree           = 1
+	set damage_qaud      = 2
+	set displacementx  = 0
+	set displacementy  = 1e-2
+	set error          = 1e-4
+	set step_length    = 0.98   #step length for Newton DG when flattening 
+	set symmetry       = -1     # DG symmetry: -1 for symmetric DG  [-1,0,1] 
+	set is_user_penalty = false # if true set penalty to the defined val below 
+		set penalty= 1e+10
+	set t_0    = 1
+	set lambda_f = 0.1
+	set m       =1
+	set unloading=36999
+	set reloading=80999
+end 
+
+
+
+
+
