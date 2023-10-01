@@ -73,8 +73,8 @@ function plot_data(file_name, plot_1, plot_2, plot_3)
 
 end
 
-plot_data("forces1", true, true, true)
-#plot_data("forces2", true, false, false)
+plot_data("forces1", true, false, false)
+plot_data("forces2", true, false, false)
 
 xlabel!("Distance [mm]")
 ylabel!("Force [N/m]")

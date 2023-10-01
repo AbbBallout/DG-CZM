@@ -8,11 +8,11 @@ subsection main
  	set penalty_factor   = 10
 
 	subsection geometry
-		set geometry = reactangle       #reactangle|half_matrix|matrix|hole|shaft|ENF
-		set initial_refinement= 4
-		set E1 = 1e+2
+		set geometry = ENF       #reactangle|half_matrix|matrix|hole|shaft|ENF
+		set initial_refinement= 2
+		set E1 = 1e+5
 		set nu1= 0.3
-		set E2 = 1e+2
+		set E2 = 1e+5
 		set nu2= 0.3
 		set is_distorted = false
 	end
@@ -23,20 +23,20 @@ subsection main
 		set friction_coff = 0
 
 		### interface ####
-		set sig_ics = 0.5
-		set sig_icn = 0.5
+		set sig_ics = 5
+		set sig_icn = 5
 		set delta_ics = 0.00001
 		set delta_icn = 0.00001
-		set G_ics  =  0.02
-		set G_icn  = 0.02
+		set G_ics  =  0.2
+		set G_icn  = 0.2
 
 		### bulk ###
 		set sig_cs = 30
 		set sig_cn = 30
 		set delta_cs = 0.00003
 		set delta_cn = 0.00003
-		set G_cs  =  0.1
-		set G_cn  = 0.1
+		set G_cs  =  0.5
+		set G_cn  = 0.5
 		
 		set with_penetration = false
 		set penetration_penalty = 1e+6		
@@ -48,7 +48,7 @@ subsection main
 		set with_adaptive_relaxation = true
 
 		####
-		set always_check_for_damage_and_unloading =true
+		set always_check_for_damage_and_unloading = false
 				
 		####
 		set ignore_non_convergence = false
@@ -71,12 +71,12 @@ subsection main
 		set cycles= 80
 		set max_nonlin_iter = 150
 		set error = 1e-8
-		set displacementx = 2e-3
-		set displacementy = 1e-3
+		set displacementx = 0
+		set displacementy = -1e-2
 		set unloading = 2599
 		set reloading = 3599
 		set output_directory = ./output1
-		set file_name = forces1
+		set file_name = forces2
 		set output_frequency = 1
 	end	
 end
