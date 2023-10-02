@@ -749,9 +749,9 @@ namespace Friction_adaptivity_everywhere
             {
                 Tensor<1, dim> new_disp;
                 if ((cell->face(face_no)->boundary_id() == 0))
-                    new_disp[0] = +0.001;
+                    new_disp[0] = 0.003;
                 else
-                    new_disp[0] = -0.001;
+                    new_disp[0] = -0.003;
 
                 if ((cell->face(face_no)->boundary_id() == 0) || (cell->face(face_no)->boundary_id() == 1))
                     for (unsigned int point = 0; point < n_q_points; ++point)
@@ -849,9 +849,9 @@ namespace Friction_adaptivity_everywhere
 
             if (par.geometry == "ENF")
             {
-                double rad = 3;
+                double rad = 2;
 
-                if (cell->face(face_no)->boundary_id() == 2 && cell->face(face_no)->center()[0] < rad)
+                if (cell->face(face_no)->boundary_id() == 2 && std::abs(cell->face(face_no)->center()[0] - 0) < rad)
                     for (unsigned int point = 0; point < n_q_points; ++point)
                     {
                         Tensor<2, dim> strain = 0.5 * (gradu[point] + transpose(gradu[point]));
@@ -898,7 +898,7 @@ namespace Friction_adaptivity_everywhere
                         }
                     }
 
-                if (cell->face(face_no)->boundary_id() == 2 && cell->face(face_no)->center()[0] > 100 - rad)
+                if (cell->face(face_no)->boundary_id() == 2 && std::abs(cell->face(face_no)->center()[0] - 140) < rad)
                     for (unsigned int point = 0; point < n_q_points; ++point)
                     {
                         Tensor<2, dim> strain = 0.5 * (gradu[point] + transpose(gradu[point]));
@@ -945,7 +945,7 @@ namespace Friction_adaptivity_everywhere
                         }
                     }
 
-                if (cell->face(face_no)->boundary_id() == 3 && std::abs(cell->face(face_no)->center()[0] - 50) < rad / 2)
+                if (cell->face(face_no)->boundary_id() == 3 && (std::abs(cell->face(face_no)->center()[0] - 70) < rad / 2))
                     for (unsigned int point = 0; point < n_q_points; ++point)
                     {
                         Tensor<2, dim> strain = 0.5 * (gradu[point] + transpose(gradu[point]));
@@ -984,10 +984,10 @@ namespace Friction_adaptivity_everywhere
                                     JxW[point]
 
                                 + par.symmetry * (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                      disp* normals[point] * JxW[point] // Symetry term
+                                      disp * normals[point] * JxW[point] // Symetry term
 
                                 + penalty *
-                                      fe_fv[displacements].value(i, point) * normals[point] * disp* normals[point] *
+                                      fe_fv[displacements].value(i, point) * normals[point] * disp * normals[point] *
                                       JxW[point]; // dx
                         }
                     }
@@ -1191,7 +1191,7 @@ namespace Friction_adaptivity_everywhere
                 if (quadrature_points_history[point].is_damaged && damage > 1 - 1e-8)
                     quadrature_points_history[point].is_fully_damaged = true;
 
-                if (par.geometry == "ENF" && cell->material_id() != ncell->material_id()  &&  cell->face(f)->center()[0] > 75)
+                if (par.geometry == "ENF" && cell->material_id() != ncell->material_id() && cell->face(f)->center()[0] > 100)
                 {
                     quadrature_points_history[point].is_fully_damaged = true;
                     quadrature_points_history[point].is_damaged = true;
@@ -1981,7 +1981,7 @@ namespace Friction_adaptivity_everywhere
         interface_stress = 0;
         interface_jump = 0;
         unsigned int counter = 0;
-        double rad = 3 ; 
+        double rad = 2;
         const auto boundary_worker = [&](const auto &cell,
                                          const unsigned int &face_no,
                                          ScratchData<dim> &scratch_data,
@@ -2007,7 +2007,8 @@ namespace Friction_adaptivity_everywhere
             Tensor<1, dim> tangential;
             Tensor<1, dim> local_reaction;
 
-            if ((cell->face(face_no)->boundary_id() == boundary_id) && std::abs(cell->face(face_no)->center()[0] - 50) < rad / 2)
+            // if ((cell->face(face_no)->boundary_id() == boundary_id))
+            if (cell->face(face_no)->boundary_id() == boundary_id && (std::abs(cell->face(face_no)->center()[0] - 70) < rad / 2))
                 for (unsigned int point = 0; point < n_q_points; ++point)
                 {
 
@@ -2150,8 +2151,8 @@ namespace Friction_adaptivity_everywhere
         }
         else if (par.geometry == "ENF")
         {
-            Point<dim> P1, P2(100, 5);
-            std::vector<unsigned int> repetitions{10, 2};
+            Point<dim> P1(0, 0), P2(140, 6);
+            std::vector<unsigned int> repetitions{70, 3};
             GridGenerator::subdivided_hyper_rectangle(triangulation, repetitions, P1, P2, true);
             triangulation.refine_global(par.initial_refinement);
 
@@ -2159,7 +2160,7 @@ namespace Friction_adaptivity_everywhere
             for (const auto &cell : triangulation.active_cell_iterators())
             {
                 p = cell->center();
-                if (p[1] > 2.5)
+                if (p[1] > 3)
                     cell->set_material_id(1);
                 else
                     cell->set_material_id(2);

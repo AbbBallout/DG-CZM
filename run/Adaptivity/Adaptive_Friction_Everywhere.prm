@@ -5,7 +5,7 @@ subsection main
 	set degree           = 1
 	set quadrature       = gauss       #gauss|lobatto|gauss-reduced
 	set symmetry         = 0
- 	set penalty_factor   = 10
+ 	set penalty_factor   = 5
 
 	subsection geometry
 		set geometry = ENF       #reactangle|half_matrix|matrix|hole|shaft|ENF
@@ -19,7 +19,7 @@ subsection main
 	
 	subsection CZM
 		set is_everywhere = false
-		set type    = intrinsic   #extrinsic|intrinsic
+		set type    = extrinsic   #extrinsic|intrinsic
 		set friction_coff = 0
 
 		### interface ####
@@ -27,8 +27,8 @@ subsection main
 		set sig_icn = 5
 		set delta_ics = 0.00001
 		set delta_icn = 0.00001
-		set G_ics  =  0.2
-		set G_icn  = 0.2
+		set G_ics  =  0.01
+		set G_icn  = 0.01
 
 		### bulk ###
 		set sig_cs = 30
@@ -39,7 +39,7 @@ subsection main
 		set G_cn  = 0.5
 		
 		set with_penetration = false
-		set penetration_penalty = 1e+6		
+		set penetration_penalty = 1e+3		
 	end
 	
 	subsection robustness
@@ -51,7 +51,7 @@ subsection main
 		set always_check_for_damage_and_unloading = false
 				
 		####
-		set ignore_non_convergence = false
+		set ignore_non_convergence = true
 				
 		####
 		set update_damage_once = false
