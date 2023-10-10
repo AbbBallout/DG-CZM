@@ -2,7 +2,6 @@ using Plots
 using DelimitedFiles
 using LaTeXStrings
 
-
 plotlyjs()
 
 
@@ -20,8 +19,8 @@ end
 
 plot()
 
-function plot_data(file_name, plot_1, plot_2, plot_3)
 
+function plot_data(file_name, plot_1, plot_2, plot_3)
     ff = readdlm("main/run/Adaptivity/output1/$file_name.txt")
     # println("Area under reaction= ", area_under_curve(sqrt.(ff[:, 1] .* ff[:, 1] + ff[:, 2] .* ff[:, 2]), sqrt.(ff[:, 3] .* ff[:, 3] + ff[:, 4] .* ff[:, 4])))
     # println("Area under shear= ", area_under_curve(abs.(ff[:, 6]), ff[:, 7]))
@@ -29,60 +28,62 @@ function plot_data(file_name, plot_1, plot_2, plot_3)
     # println("Area under magnitude= ", area_under_curve(sqrt.(ff[:, 5] .* ff[:, 5] + ff[:, 6] .* ff[:, 6]), sqrt.(ff[:, 7] .* ff[:, 7] + ff[:, 8] .* ff[:, 8])))
 
     if (plot_1)
-        plot!(sqrt.(ff[:, 1] .* ff[:, 1] + ff[:, 2] .* ff[:, 2]),
-            sqrt.(ff[:, 3] .* ff[:, 3] + ff[:, 4] .* ff[:, 4]),
+        x = sqrt.(ff[:, 1] .* ff[:, 1] + ff[:, 2] .* ff[:, 2])
+        y = sqrt.(ff[:, 3] .* ff[:, 3] + ff[:, 4] .* ff[:, 4])
+        plot!(x,
+            y,
             #  color="blue"  , 
-            linewidth=1,
-            name="Reaction on the top plane vs displacement")
+            linewidth=1.5,
+            name="Reaction vs imposed displacement (magnitude)")
 
-        plot!(sqrt.(ff[:, 1] .* ff[:, 1] + ff[:, 2] .* ff[:, 2]), sqrt.(ff[:, 3] .* ff[:, 3] + ff[:, 4] .* ff[:, 4]),
+        plot!(x, y,
             seriestype=:scatter,
-            color="black",
-            markersize=:1.25,
+            color="black", markersize=:2,
             showlegend=false
         )
     end
 
     if (plot_2)
-    plot!(sqrt.(ff[:, 5] .* ff[:, 5] + ff[:, 6] .* ff[:, 6]),
-        sqrt.(ff[:, 7] .* ff[:, 7] + ff[:, 8] .* ff[:, 8]),
-        linewidth=1,
-        color="red",
-        name="Average jump vs force in magnitude"
-    )
+        x = sqrt.(ff[:, 5] .* ff[:, 5] + ff[:, 6] .* ff[:, 6])
+        y = sqrt.(ff[:, 7] .* ff[:, 7] + ff[:, 8] .* ff[:, 8])
+        plot!(x, y,
+            linewidth=1.5,
+            color="red",
+            name="Mid-plane force vs average jump (magnitude) "
+        )
 
-    plot!(sqrt.(ff[:, 5] .* ff[:, 5] + ff[:, 6] .* ff[:, 6]), sqrt.(ff[:, 7] .* ff[:, 7] + ff[:, 8] .* ff[:, 8]),
-        seriestype=:scatter,
-        color="black",
-        markersize=:1.5,
-        showlegend=false)
+        plot!(x, y,
+            seriestype=:scatter,
+            color="black",
+            markersize=:2,
+            showlegend=false)
 
     end
 
-    if(plot_3)
-    plot!(abs.(ff[:, 6]), ff[:, 7],
-        #color="orange"  , 
-        linewidth=1,
-        name="Average shear jump vs shear force")
+    if (plot_3)
+        plot!(abs.(ff[:, 6]), ff[:, 7],
+            #color="orange"  , 
+            linewidth=1.5,
+            name="Mid-plane shear force vs tangential jump")
 
-    plot!(abs.(ff[:, 5]), ff[:, 8],
-        #color="cyan"  , 
-        linewidth=1,
-        name="Average normal jump vs normal force ")
+        plot!(abs.(ff[:, 5]), ff[:, 8],
+            #color="cyan"  , 
+            linewidth=1.5,
+            name="Mid-plane normal force vs normal jump")
     end
-
 end
 
-plot_data("forces1", true, false, false)
-plot_data("forces2", true, false, false)
+plot_data("forces0", true, true, true)
+#plot_data("forces1", true, false, false)
+#plot_data("forces2", true, false, false)
 
+#plot!(legend=:topright)
 xlabel!("Distance [mm]")
-ylabel!("Force [N/m]")
+ylabel!("Force [N/mm]")
+plot!(grid=true,gridlinewidth = 3)
 #title!("Force vs Distance")
 
-#plot!(legend=(0.55, 0.92))
-plot!(legend=:bottomright)
- 
+
 
 # using BSplineKit
 
@@ -97,4 +98,30 @@ plot!(legend=:bottomright)
 #     name="Nguyen")
 # xlims!(0, 17e-3)
 
-#savefig("Matrix_Fiber_seperation_plot.pdf")
+
+#plot!(size = [600,100])
+#plot!(legend=(0.50, 0.98))   
+#savefig("reactange_seperation_plot.pdf")
+
+######### ENF analytical ####
+# L_enf=70.0
+# a_enf=40.0
+# E_enf=1.0e+5
+# h_enf = 3
+# b_enf= 5
+# I_enf= b_enf*h_enf^3/12
+# min=20
+# max=50+1
+# P_enf = range(0, max, length=100)
+# x_ENF = P_enf*(2*L_enf^3+3*a_enf^3)/(96*E_enf*I_enf)
+# plot!(x_ENF,P_enf)
+
+# G_IIc_enf = 0.03
+# P_enf = range(min, max, length=100)
+# x_ENF = (P_enf/(96*E_enf*I_enf)).*( 2*L_enf^3 .+ (64*G_IIc_enf*b_enf*E_enf*I_enf)^1.5 ./ (sqrt(3)*P_enf.^3) ) 
+# plot!(x_ENF,P_enf)
+
+# P_enf = range(min, 30, length=100)
+# x_ENF = P_enf*L_enf^3/(12*E_enf*I_enf)
+# plot!(x_ENF,P_enf)
+

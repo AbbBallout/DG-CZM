@@ -596,7 +596,7 @@ namespace Friction_adaptivity_everywhere
             double elasticity = 0, poisson = 0, lambda = 0, mu = 0;
             ENLM(cell->material_id(), elasticity, poisson, lambda, mu);
 
-            double penalty = 2 * (par.penalty_factor) * elasticity / (cell->measure());
+            double penalty =  (par.penalty_factor) * elasticity / (cell->diameter());
 
             if (par.geometry == "reactangle" || par.geometry == "matrix" || par.geometry == "hole")
             {
@@ -1041,7 +1041,7 @@ namespace Friction_adaptivity_everywhere
 
             PointHistory<dim> *quadrature_points_history = reinterpret_cast<PointHistory<dim> *>(cell->face(f)->user_pointer());
 
-            double penalty = (par.penalty_factor) * (elasticity / 2 + nelasticity / 2) / (cell->measure());
+            double penalty = (par.penalty_factor) * (elasticity / 2 + nelasticity / 2) / std::min(cell->diameter(),ncell->diameter());
             Tensor<1, dim> sig_c, delta_c, G_c;
             if (cell->material_id() == ncell->material_id())
             {
@@ -2007,8 +2007,8 @@ namespace Friction_adaptivity_everywhere
             Tensor<1, dim> tangential;
             Tensor<1, dim> local_reaction;
 
-            // if ((cell->face(face_no)->boundary_id() == boundary_id))
-            if (cell->face(face_no)->boundary_id() == boundary_id && (std::abs(cell->face(face_no)->center()[0] - 70) < rad / 2))
+            if ((cell->face(face_no)->boundary_id() == boundary_id))
+                // if (cell->face(face_no)->boundary_id() == boundary_id && (std::abs(cell->face(face_no)->center()[0] - 70) < rad / 2))
                 for (unsigned int point = 0; point < n_q_points; ++point)
                 {
 
@@ -2078,7 +2078,7 @@ namespace Friction_adaptivity_everywhere
                 }
         };
 
-        ScratchData<dim> scratch_data(mapping, fe, quadrature, QGauss<dim - 1>(1));
+        ScratchData<dim> scratch_data(mapping, fe, quadrature, QGauss<dim - 1>(5));
         CopyData copy_data;
 
         MeshWorker::mesh_loop(dof_handler.begin_active(),
@@ -2204,12 +2204,12 @@ namespace Friction_adaptivity_everywhere
             if (cycle < par.unloading || cycle > par.reloading)
             {
                 disp[0] += par.displacementx;
-                disp[1] += par.displacementy;
+                disp[1] = par.displacementy;
             }
             else
             {
                 disp[0] -= par.displacementx;
-                disp[1] -= par.displacementy;
+                disp[1] = par.displacementy;
             }
 
             pcout << " ####### cycle = " << cycle << " and displacement = " << disp[1] << " ###### \n";

@@ -2,16 +2,16 @@ subsection main
 	set testing_I = 0
 	set testing_F = 0
 	 
-	set degree           = 1
+	set degree           = 2
 	set quadrature       = gauss       #gauss|lobatto|gauss-reduced
 	set symmetry         = 0
- 	set penalty_factor   = 5
+ 	set penalty_factor   = 100
 
 	subsection geometry
-		set geometry = ENF       #reactangle|half_matrix|matrix|hole|shaft|ENF
-		set initial_refinement= 2
-		set E1 = 1e+5
-		set nu1= 0.3
+		set geometry = reactangle       #reactangle|half_matrix|matrix|hole|shaft|ENF
+		set initial_refinement= 5
+		set E1 = 1e+2
+		set nu1= 0.4
 		set E2 = 1e+5
 		set nu2= 0.3
 		set is_distorted = false
@@ -23,12 +23,12 @@ subsection main
 		set friction_coff = 0
 
 		### interface ####
-		set sig_ics = 5
-		set sig_icn = 5
-		set delta_ics = 0.00001
-		set delta_icn = 0.00001
-		set G_ics  =  0.01
-		set G_icn  = 0.01
+		set sig_ics = 0.5
+		set sig_icn = 0.8
+		set delta_ics = 2.5e-5
+		set delta_icn = 4e-5
+		set G_ics  =  0.015
+		set G_icn  = 0.028
 
 		### bulk ###
 		set sig_cs = 30
@@ -39,19 +39,19 @@ subsection main
 		set G_cn  = 0.5
 		
 		set with_penetration = false
-		set penetration_penalty = 1e+3		
+		set penetration_penalty = 1e+4		
 	end
 	
 	subsection robustness
 		####
 		set newton_relaxation = 1.0
-		set with_adaptive_relaxation = true
+		set with_adaptive_relaxation = false
 
 		####
-		set always_check_for_damage_and_unloading = false
+		set always_check_for_damage_and_unloading = true
 				
 		####
-		set ignore_non_convergence = true
+		set ignore_non_convergence = false
 				
 		####
 		set update_damage_once = false
@@ -61,9 +61,9 @@ subsection main
 	end
 	
 	subsection adaptivity
-	 	set with_adaptivity  = false
+	 	set with_adaptivity  = true
 	 	set theshold_stress_factor = 0.8    #less than one
-	 	set max_cell_level  = 2
+	 	set max_cell_level  = 8
 	end
 	
 	
@@ -71,12 +71,12 @@ subsection main
 		set cycles= 80
 		set max_nonlin_iter = 150
 		set error = 1e-8
-		set displacementx = 0
-		set displacementy = -1e-2
-		set unloading = 2599
-		set reloading = 3599
+		set displacementx =  2e-3
+		set displacementy = -1e-3
+		set unloading = 20
+		set reloading = 39
 		set output_directory = ./output1
-		set file_name = forces2
+		set file_name = forces0
 		set output_frequency = 1
 	end	
 end
