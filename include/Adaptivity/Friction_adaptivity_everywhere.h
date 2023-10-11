@@ -132,7 +132,6 @@ namespace Friction_adaptivity_everywhere
                 add_parameter("update_damage_once", update_damage_once, " ", this->prm, Patterns::Bool());
                 add_parameter("newton_relaxation", newton_relaxation, " ", this->prm, Patterns::Double());
                 add_parameter("with_adaptive_relaxation", with_adaptive_relaxation, " ", this->prm, Patterns::Bool());
-
                 add_parameter("max_external_iterations", max_external_iterations, " ", this->prm, Patterns::Integer());
                 add_parameter("damage_error", damage_error, " ", this->prm, Patterns::Double());
                 add_parameter("external_iterations_error", external_iterations_error, " ", this->prm, Patterns::Double());
@@ -596,7 +595,7 @@ namespace Friction_adaptivity_everywhere
             double elasticity = 0, poisson = 0, lambda = 0, mu = 0;
             ENLM(cell->material_id(), elasticity, poisson, lambda, mu);
 
-            double penalty =  (par.penalty_factor) * elasticity / (cell->diameter());
+            double penalty = (par.penalty_factor) * elasticity / (cell->diameter());
 
             if (par.geometry == "reactangle" || par.geometry == "matrix" || par.geometry == "hole")
             {
@@ -1041,7 +1040,7 @@ namespace Friction_adaptivity_everywhere
 
             PointHistory<dim> *quadrature_points_history = reinterpret_cast<PointHistory<dim> *>(cell->face(f)->user_pointer());
 
-            double penalty = (par.penalty_factor) * (elasticity / 2 + nelasticity / 2) / std::min(cell->diameter(),ncell->diameter());
+            double penalty = (par.penalty_factor) * (elasticity / 2 + nelasticity / 2) / std::min(cell->diameter(), ncell->diameter());
             Tensor<1, dim> sig_c, delta_c, G_c;
             if (cell->material_id() == ncell->material_id())
             {
@@ -1116,7 +1115,7 @@ namespace Friction_adaptivity_everywhere
 
                 double coff = par.friction_coff;
                 // for robustness
-                if (non_lin == 1 && coff > 0 + 1e-9)
+                if (non_lin <= 1 && coff > 0 + 1e-9)
                     coff = 10;
 
                 double Coulomb = std::abs(tau_trial[0]) + coff * tau_trial[1];
@@ -1188,7 +1187,7 @@ namespace Friction_adaptivity_everywhere
                         quadrature_points_history[point].law_g = law_g;
 
                 // if (non_lin == 1)
-                if (quadrature_points_history[point].is_damaged && damage > 1 - 1e-8)
+                if (quadrature_points_history[point].is_damaged && damage > 1 - 1e-12)
                     quadrature_points_history[point].is_fully_damaged = true;
 
                 if (par.geometry == "ENF" && cell->material_id() != ncell->material_id() && cell->face(f)->center()[0] > 100)
@@ -1270,7 +1269,7 @@ namespace Friction_adaptivity_everywhere
 
                     // dTCZ/Ds * dDs/du
                     if (par.update_damage_once == false || non_lin == 1)
-                        if (damage < 1 - 1e-8 && damage > 0)
+                        if (damage > 0 && quadrature_points_history[point].is_fully_damaged == false)
                         {
                             Tensor<1, dim> ddamage_du;
 
@@ -1301,6 +1300,7 @@ namespace Friction_adaptivity_everywhere
                         }
 
                     // dTCZ/dp * dp/du
+
                     if (law_g[1] > 0)
                     {
                         Tensor<2, dim> dp_du;
@@ -1335,19 +1335,22 @@ namespace Friction_adaptivity_everywhere
                         TCZ_res[1] += heaviside(-law_g_unshifted[1]) * par.penetration_penalty * law_g_unshifted[1];
                         TCZ[1][1] += heaviside(-law_g_unshifted[1]) * par.penetration_penalty;
                     }
-                    // This is done in order to stabelize the solution towrads the end of faliure
-                    // par.delta_ics is a small number. u can use another small number
-                    if ((quadrature_points_history[point].max_damage < 1 && quadrature_points_history[point].is_fully_damaged))
-                        // if (damage>1-par.delta_ics  && non_lin==1)
-                        // if ((quadrature_points_history[point].max_damage < 1 && quadrature_points_history[point].is_fully_damaged) || (damage > 1 - par.delta_ics && non_lin == 1))
-                        if (law_g[1] < 0)
-                        {
-                            tau_trial -= par.penetration_penalty * temp_g;
-                            TCZ_res[0] = coff * tau_trial[1] * sign(tau_trial[0]);
-                            // TCZ[0][0] = 0.0;
-                            // TCZ[0][1] = 0.0;
-                        }
+
+                    // // This is done in order to stabelize the solution towrads the end of faliure
+                    // // par.delta_ics is a small number. u can use another small number
+                    //  if ((quadrature_points_history[point].max_damage < 1.0 && quadrature_points_history[point].is_fully_damaged))
+                    // //     // if (damage>1-par.delta_ics  && non_lin==1)
+                    // //     // if ((quadrature_points_history[point].max_damage < 1 && quadrature_points_history[point].is_fully_damaged) || (damage > 1 - par.delta_ics && non_lin == 1))
+                    //     if (law_g[1] < 0)
+                    //     {
+                    //         tau_trial -= par.penetration_penalty * temp_g;
+                    //         TCZ_res[0] = coff * tau_trial[1] * sign(tau_trial[0]);
+                    //         // TCZ[0][0] = 0.0;
+                    //         // TCZ[0][1] = 0.0;
+                    //     }
                 }
+
+                TCZ[0][0] += 10.0;
 
                 if (par.is_everywhere == false)
                     if (cell->material_id() == ncell->material_id())
@@ -1361,36 +1364,37 @@ namespace Friction_adaptivity_everywhere
                     if (cell->material_id() != 1 && ncell->material_id() != 1)
                         quadrature_points_history[point].is_damaged = false;
 
-                // if (cell->material_id() != ncell->material_id())
-                //     if (q_points[point][1] > 0.91)
-                //         if (quadrature_points_history[point].is_damaged)
-                //         {
-                //             pcout << "At q point " << q_points[point] << "\n";
-                //             //  pcout << "is damaged " << quadrature_points_history[point].is_damaged << "\n";
-                //             // pcout << "is reloaded " << quadrature_points_history[point].is_reunload << "\n";
-                //             //  pcout << "is fully damaged " << quadrature_points_history[point].is_fully_damaged << "\n";
-                //             // pcout << "traction " << traction << "\n";
+                if (cell->material_id() != ncell->material_id())
+                    // if (q_points[point][1] > 0.91)
+                    if (quadrature_points_history[point].is_reunload)
+                        if (quadrature_points_history[point].is_damaged)
+                        {
+                          //  pcout << "At q point " << q_points[point] << "\n";
+                            //  pcout << "is damaged " << quadrature_points_history[point].is_damaged << "\n";
+                            // pcout << "is reloaded " << quadrature_points_history[point].is_reunload << "\n";
+                            //  pcout << "is fully damaged " << quadrature_points_history[point].is_fully_damaged << "\n";
+                            // pcout << "traction " << traction << "\n";
 
-                //             pcout << "damage " << damage << "\n";
-                //             //   pcout << "history.max_damage " << quadrature_points_history[point].max_damage << "\n";
-                //             // pcout << "shift " << shift << "\n";
-                //             // pcout << "law_g shifted " << law_g << "\n";
-                //             // pcout << "law_g unshifted " << law_g_unshifted << "\n";
-                //             //  pcout << "history law_g " << quadrature_points_history[point].law_g << "\n";
-                //             //  pcout << "history traction_init " << quadrature_points_history[point].traction_init << "\n";
+                            // pcout << "damage " << damage << "\n";
+                            //   pcout << "history.max_damage " << quadrature_points_history[point].max_damage << "\n";
+                            // pcout << "shift " << shift << "\n";
+                            // pcout << "law_g shifted " << law_g << "\n";
+                            // pcout << "law_g unshifted " << law_g_unshifted << "\n";
+                            //  pcout << "history law_g " << quadrature_points_history[point].law_g << "\n";
+                            //  pcout << "history traction_init " << quadrature_points_history[point].traction_init << "\n";
 
-                //             //  pcout << "law_p " << law_p << "\n";
-                //             // pcout << "law_q " << law_q << "\n";
-                //             pcout << "tau_trial " << tau_trial << "\n";
-                //             // pcout << "tau_u " << tau_u << "\n";
-                //             pcout << "Coulomb " << Coulomb << "\n";
-                //             //   pcout << "Freddi_g " << quadrature_points_history[point].Freddi_g << "\n";
+                            //  pcout << "law_p " << law_p << "\n";
+                            // pcout << "law_q " << law_q << "\n";
+                            // pcout << "tau_trial " << tau_trial << "\n";
+                            // pcout << "tau_u " << tau_u << "\n";
+                            // pcout << "Coulomb " << Coulomb << "\n";
+                            //   pcout << "Freddi_g " << quadrature_points_history[point].Freddi_g << "\n";
 
-                //             //  pcout << "TCZ_res " << TCZ_res << "\n";
-                //             // pcout << "TCZ " << TCZ << "\n";
+                          //  pcout << "TCZ_res " << TCZ_res << "\n";
+                          //  pcout << "TCZ " << TCZ << "\n";
 
-                //             // pcout << "\n";
-                //         }
+                         //   pcout << "\n";
+                        }
 
                 for (unsigned int i = 0; i < n_dofs_face; ++i)
                 {
