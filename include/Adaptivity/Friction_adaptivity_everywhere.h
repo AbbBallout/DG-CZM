@@ -1350,7 +1350,7 @@ namespace Friction_adaptivity_everywhere
                     //     }
                 }
 
-                TCZ[0][0] += 10.0;
+                 TCZ[0][0] += 10.0;
 
                 if (par.is_everywhere == false)
                     if (cell->material_id() == ncell->material_id())
@@ -2208,12 +2208,12 @@ namespace Friction_adaptivity_everywhere
             if (cycle < par.unloading || cycle > par.reloading)
             {
                 disp[0] += par.displacementx;
-                disp[1] = par.displacementy;
+                disp[1] += par.displacementy;
             }
             else
             {
                 disp[0] -= par.displacementx;
-                disp[1] = par.displacementy;
+                disp[1] -= par.displacementy;
             }
 
             pcout << " ####### cycle = " << cycle << " and displacement = " << disp[1] << " ###### \n";
