@@ -1,6 +1,6 @@
 using SymPy
 using Plots
-plotlyjs()
+gr()
 
 @vars us un real=true
 u = Sym[us ; Heaviside(un)*un]

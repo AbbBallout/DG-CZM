@@ -1350,7 +1350,7 @@ namespace Friction_adaptivity_everywhere
                     //     }
                 }
 
-                 TCZ[0][0] += 10.0;
+                TCZ[0][0] += 10.0;
 
                 if (par.is_everywhere == false)
                     if (cell->material_id() == ncell->material_id())
@@ -1369,7 +1369,7 @@ namespace Friction_adaptivity_everywhere
                     if (quadrature_points_history[point].is_reunload)
                         if (quadrature_points_history[point].is_damaged)
                         {
-                          //  pcout << "At q point " << q_points[point] << "\n";
+                            //  pcout << "At q point " << q_points[point] << "\n";
                             //  pcout << "is damaged " << quadrature_points_history[point].is_damaged << "\n";
                             // pcout << "is reloaded " << quadrature_points_history[point].is_reunload << "\n";
                             //  pcout << "is fully damaged " << quadrature_points_history[point].is_fully_damaged << "\n";
@@ -1390,10 +1390,10 @@ namespace Friction_adaptivity_everywhere
                             // pcout << "Coulomb " << Coulomb << "\n";
                             //   pcout << "Freddi_g " << quadrature_points_history[point].Freddi_g << "\n";
 
-                          //  pcout << "TCZ_res " << TCZ_res << "\n";
-                          //  pcout << "TCZ " << TCZ << "\n";
+                            //  pcout << "TCZ_res " << TCZ_res << "\n";
+                            //  pcout << "TCZ " << TCZ << "\n";
 
-                         //   pcout << "\n";
+                            //   pcout << "\n";
                         }
 
                 for (unsigned int i = 0; i < n_dofs_face; ++i)
@@ -1512,10 +1512,15 @@ namespace Friction_adaptivity_everywhere
 
         if (par.with_adaptive_relaxation)
         {
+            double dither = Utilities::generate_normal_random_number(0, 0.001);
+            pcout << "dither \t" <<  dither << "\n";
+
             if (system_rhs.l2_norm() > prev_error)
                 newton_relaxation = newton_relaxation * 0.75;
             else if (system_rhs.l2_norm() < 100)
                 newton_relaxation = newton_relaxation * 1.1;
+
+            newton_relaxation+=dither ; 
 
             if (newton_relaxation < 0.05)
                 newton_relaxation = 0.05;
