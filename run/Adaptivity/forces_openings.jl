@@ -74,28 +74,28 @@ function plot_data(file_name, plot_1, plot_2, plot_3)
 end
 
 #plot_data("forces1", true, false, false)
-plot_data("forces2", true, false, false)
+plot_data("forces2", false, true, false)
 # plot_data("forces3", false, true,false  )
 
-#plot!(legend=:bottomright)
+plot!(legend=:bottomright)
 xlabel!("Average jump [mm]")
 ylabel!("Force [N/mm]")
 plot!(grid=true, gridlinewidth=3)
 #title!("Force vs Distance")
 
 
-using BSplineKit
+# using BSplineKit
 
-Nguyenx = [0.0, 1.4e-3, 4.9e-3, 6e-3, 8.15e-3,8.4e-3]
-Nguyeny = [0.0, 8.8, 18.9, 21.0, 17.8,16.6]
+# Nguyenx = [0.0, 1.4e-3, 4.9e-3, 6e-3, 8.15e-3,8.4e-3]
+# Nguyeny = [0.0, 8.8, 18.9, 21.0, 17.8,16.6]
 
-S = interpolate(Nguyenx, Nguyeny, BSplineOrder(4))
-xlims!(0, 8.15e-3)
-plot!(Nguyenx -> S(Nguyenx),
-    #  color="blue"  , 
-    linewidth=3,
-    name="Nguyen VP")
-xlims!(0, 17e-3)
+# S = interpolate(Nguyenx, Nguyeny, BSplineOrder(4))
+# xlims!(0, 8.15e-3)
+# plot!(Nguyenx -> S(Nguyenx),
+#     #  color="blue"  , 
+#     linewidth=3,
+#     name="Nguyen VP")
+# xlims!(0, 8e-3)
 
 
 #plot!(size = [600,100])

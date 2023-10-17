@@ -8,8 +8,8 @@ subsection main
  	set penalty_factor   = 5
 
 	subsection geometry
-		set geometry = matrix       #reactangle|half_matrix|matrix|hole|shaft|ENF
-		set initial_refinement= 1
+		set geometry = reactangle       #reactangle|half_matrix|matrix|hole|shaft|ENF
+		set initial_refinement= 3
 		set E1 = 4e+3
 		set nu1= 0.4
 		set E2 = 40e+3
@@ -18,15 +18,15 @@ subsection main
 	end
 	
 	subsection CZM
-		set is_everywhere = true
+		set is_everywhere = false
 		set type    = extrinsic   #extrinsic|intrinsic
 		set friction_coff = 0
 
 		### interface ####
 		set sig_ics = 10
 		set sig_icn = 10
-		set delta_ics = 1e-5
-		set delta_icn = 1e-5
+		set delta_ics = 1e-3
+		set delta_icn = 1e-3
 		set G_ics  =  0.05
 		set G_icn  = 0.05
 		
@@ -69,7 +69,7 @@ subsection main
 	
 	
 	subsection solver_control
-		set cycles= 180
+		set cycles= 110
 		set max_nonlin_iter = 150
 		set error = 1e-8
 		set displacementx = 0
