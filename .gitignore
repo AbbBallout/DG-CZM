@@ -2,3 +2,4 @@
 *.pvtu
 *.txt
 !CMakeLists.txt
+*.pdf
