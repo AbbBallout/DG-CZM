@@ -20,7 +20,7 @@ subsection main
 	subsection CZM
 		set is_everywhere = false
 		set type    = intrinsic   #extrinsic|intrinsic
-		set friction_coff = 0
+		set friction_coff = 0.6
 
 		### interface ####
 		set sig_ics = 0.1
@@ -31,12 +31,12 @@ subsection main
 		set G_icn  = 1e-3
 		
 		### bulk ###
-		set sig_cs = 30
-		set sig_cn = 30
-		set delta_cs = 3e-5
-		set delta_cn = 3e-5
-		set G_cs  =  0.25
-		set G_cn  = 0.25
+		set sig_cs = 0.1
+		set sig_cn = 0.1
+		set delta_cs = 1e-4
+		set delta_cn = 1e-4
+		set G_cs  =  1e-3
+		set G_cn  = 1e-3
 		
 		set with_penetration = false
 		set penetration_penalty = 1e+4	
@@ -62,15 +62,15 @@ subsection main
 	end
 	
 	subsection adaptivity
-	 	set with_adaptivity  = false
+	 	set with_adaptivity  = true
 	 	set theshold_stress_factor = 0.8    #less than one
-	 	set max_cell_level  = 7
+	 	set max_cell_level  = 6
 	end
 	
 	
 	subsection solver_control
-		set cycles= 200
-		set max_nonlin_iter = 150
+		set cycles= 500
+		set max_nonlin_iter = 100
 		set error = 1e-8
 		set displacementx = 2e-4
 		set displacementy = 0

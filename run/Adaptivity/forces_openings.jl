@@ -33,14 +33,14 @@ function plot_data(file_name, plot_1, plot_2, plot_3)
         plot!(x,
             y,
             #  color="blue"  , 
-            linewidth=1.5,
-            name="Reaction vs imposed displacement (magnitude)")
+            linewidth=2.5,
+            name="tn = -0.333)")
 
-        plot!(x, y,
-            seriestype=:scatter,
-            color="black", markersize=:2,
-            showlegend=false
-        )
+        # plot!(x, y,
+        #     seriestype=:scatter,
+        #     color="black", markersize=:2,
+        #     showlegend=false
+        # )
     end
 
     if (plot_2)
@@ -76,10 +76,10 @@ end
 plot_data("forces0", true, false, false)
 #plot_data("forces1", true, false, false)
 #plot_data("forces2", true, false, false)
-# plot_data("forces3", false, true,false  )
+#plot_data("forces3", true, false,false  )
 
 plot!(legend=:bottomright)
-xlabel!("Average jump [mm]")
+xlabel!("Displacement [mm]")
 ylabel!("Force [N/mm]")
 plot!(grid=true, gridlinewidth=3)
 #title!("Force vs Distance")
@@ -96,12 +96,12 @@ plot!(grid=true, gridlinewidth=3)
 #     #  color="blue"  , 
 #     linewidth=3,
 #     name="Nguyen VP")
-# xlims!(0, 8e-3)
+#xlims!(0, 2.2e-1)
 
 
 #plot!(size = [600,100])
 #plot!(legend=(0.50, 0.98))   
-#savefig("reactange_compression_plot.pdf")
+#savefig("EN10_plot.svg")
 
 ######### ENF analytical ####
 # L_enf=70.0

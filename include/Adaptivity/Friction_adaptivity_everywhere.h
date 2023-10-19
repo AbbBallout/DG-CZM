@@ -1519,8 +1519,6 @@ namespace Friction_adaptivity_everywhere
 
         if (par.with_adaptive_relaxation)
         {
-            // double dither = Utilities::generate_normal_random_number(0, 0.01);
-            // pcout << "dither \t" << dither << "\n";
 
             if (system_rhs.l2_norm() > prev_error)
                 newton_relaxation = newton_relaxation * 0.75;
