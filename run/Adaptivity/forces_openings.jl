@@ -20,7 +20,7 @@ end
 plot()
 
 
-function plot_data(file_name, plot_1, plot_2, plot_3)
+function plot_data(file_name, plot_1, plot_2, plot_3, max)
     ff = readdlm("main/run/Adaptivity/output1/$file_name.txt")
     # println("Area under reaction= ", area_under_curve(sqrt.(ff[:, 1] .* ff[:, 1] + ff[:, 2] .* ff[:, 2]), sqrt.(ff[:, 3] .* ff[:, 3] + ff[:, 4] .* ff[:, 4])))
     # println("Area under shear= ", area_under_curve(abs.(ff[:, 6]), ff[:, 7]))
@@ -28,8 +28,8 @@ function plot_data(file_name, plot_1, plot_2, plot_3)
     # println("Area under magnitude= ", area_under_curve(sqrt.(ff[:, 5] .* ff[:, 5] + ff[:, 6] .* ff[:, 6]), sqrt.(ff[:, 7] .* ff[:, 7] + ff[:, 8] .* ff[:, 8])))
 
     if (plot_1)
-        x = sqrt.(ff[:, 1] .* ff[:, 1] + ff[:, 2] .* ff[:, 2])
-        y = sqrt.(ff[:, 3] .* ff[:, 3] + ff[:, 4] .* ff[:, 4])
+        x = sqrt.(ff[1:end-max, 1] .* ff[1:end-max, 1] + ff[1:end-max, 2] .* ff[1:end-max, 2])
+        y = sqrt.(ff[1:end-max, 3] .* ff[1:end-max, 3] + ff[1:end-max, 4] .* ff[1:end-max, 4])
         plot!(x,
             y,
             #  color="blue"  , 
@@ -74,9 +74,9 @@ function plot_data(file_name, plot_1, plot_2, plot_3)
 end
 
 plot_data("forces0", true, false, false)
-#plot_data("forces1", true, false, false)
-#plot_data("forces2", true, false, false)
-#plot_data("forces3", true, false,false  )
+#plot_data("forces1", true, false, false,1000)
+#plot_data("forces2", true, false, false,800)
+#plot_data("forces3", true, false, false,800)
 
 plot!(legend=:bottomright)
 xlabel!("Displacement [mm]")
@@ -96,7 +96,7 @@ plot!(grid=true, gridlinewidth=3)
 #     #  color="blue"  , 
 #     linewidth=3,
 #     name="Nguyen VP")
-#xlims!(0, 2.2e-1)
+#xlims!(0,2.1e-1)
 
 
 #plot!(size = [600,100])

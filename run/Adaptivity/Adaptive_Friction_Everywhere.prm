@@ -9,7 +9,7 @@ subsection main
 
 	subsection geometry
 		set geometry = EN_10       #reactangle|half_matrix|matrix|hole|ENF|EN_10
-		set initial_refinement= 4
+		set initial_refinement= 6
 		set E1 = 18e+3
 		set nu1= 0.15
 		set E2 = 700
@@ -18,9 +18,9 @@ subsection main
 	end
 	
 	subsection CZM
-		set is_everywhere = false
+		set is_everywhere = true
 		set type    = intrinsic   #extrinsic|intrinsic
-		set friction_coff = 0.6
+		set friction_coff = 0
 
 		### interface ####
 		set sig_ics = 0.1
@@ -62,15 +62,15 @@ subsection main
 	end
 	
 	subsection adaptivity
-	 	set with_adaptivity  = true
+	 	set with_adaptivity  = false
 	 	set theshold_stress_factor = 0.8    #less than one
-	 	set max_cell_level  = 6
+	 	set max_cell_level  =6
 	end
 	
 	
 	subsection solver_control
-		set cycles= 500
-		set max_nonlin_iter = 100
+		set cycles= 200
+		set max_nonlin_iter = 150
 		set error = 1e-8
 		set displacementx = 2e-4
 		set displacementy = 0
