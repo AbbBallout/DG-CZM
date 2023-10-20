@@ -20,7 +20,7 @@ end
 plot()
 
 
-function plot_data(file_name, plot_1, plot_2, plot_3, max)
+function plot_data(file_name, plot_1, plot_2, plot_3, max,in)
     ff = readdlm("main/run/Adaptivity/output1/$file_name.txt")
     # println("Area under reaction= ", area_under_curve(sqrt.(ff[:, 1] .* ff[:, 1] + ff[:, 2] .* ff[:, 2]), sqrt.(ff[:, 3] .* ff[:, 3] + ff[:, 4] .* ff[:, 4])))
     # println("Area under shear= ", area_under_curve(abs.(ff[:, 6]), ff[:, 7]))
@@ -34,7 +34,7 @@ function plot_data(file_name, plot_1, plot_2, plot_3, max)
             y,
             #  color="blue"  , 
             linewidth=2.5,
-            name="tn = -0.333)")
+            name=in)
 
         # plot!(x, y,
         #     seriestype=:scatter,
@@ -73,10 +73,10 @@ function plot_data(file_name, plot_1, plot_2, plot_3, max)
     end
 end
 
-plot_data("forces0", true, false, false)
-#plot_data("forces1", true, false, false,1000)
-#plot_data("forces2", true, false, false,800)
-#plot_data("forces3", true, false, false,800)
+#plot_data("forces0", true, false, false,0)
+plot_data("forces1", true, false, false,0,"penalty 4e+4")
+plot_data("forces2", true, false, false,0,"penalty 5e+3")
+#plot_data("forces3", true, false, false,0)
 
 plot!(legend=:bottomright)
 xlabel!("Displacement [mm]")

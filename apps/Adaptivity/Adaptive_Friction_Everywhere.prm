@@ -1,0 +1,119 @@
+# Listing of Parameters
+# ---------------------
+subsection main
+  set degree         = 0
+
+  set penalty_factor = 0
+
+  set quadrature     = gauss
+
+  set symmetry       = 0
+
+  set testing_F      = 0
+
+  set testing_I      = 0
+
+
+  subsection CZM
+    set G_cn                = 0
+
+    set G_cs                = 0
+
+    set G_icn               = 0
+
+    set G_ics               = 0
+
+    set delta_cn            = 0
+
+    set delta_cs            = 0
+
+    set delta_icn           = 0
+
+    set delta_ics           = 0
+
+    set friction_coff       = 0
+
+    set is_everywhere       = false
+
+    set penetration_penalty = 0
+
+    set sig_cn              = 0
+
+    set sig_cs              = 0
+
+    set sig_icn             = 0
+
+    set sig_ics             = 0
+
+    set type                = extrinsic
+
+    set with_penetration    = false
+  end
+
+  subsection adaptivity
+    set max_cell_level         = 0
+
+    set theshold_stress_factor = 0
+
+    set with_adaptivity        = false
+  end
+
+  subsection geometry
+    set E1                 = 0
+
+    set E2                 = 0
+
+    set geometry           = reactangle
+
+    set initial_refinement = 0
+
+    set is_distorted       = false
+
+    set nu1                = 0
+
+    set nu2                = 0
+  end
+
+  subsection robustness
+    set always_check_for_damage_and_unloading = false
+
+    set damage_error                          = 0
+
+    set external_iterations_error             = 0
+
+    set ignore_non_convergence                = false
+
+    set max_external_iterations               = 0
+
+    set newton_relaxation                     = 0
+
+    set update_damage_once                    = false
+
+    set with_adaptive_relaxation              = false
+  end
+
+  subsection solver_control
+    set cycles           = 0
+
+    set displacementx    = 0
+
+    set displacementy    = 0
+
+    set error            = 0
+
+    set file_name        = forces
+
+    set max_nonlin_iter  = 0
+
+    set output_directory = output
+
+    set output_frequency = 0
+
+    set reloading        = 0
+
+    set unloading        = 0
+  end
+
+end
+
+

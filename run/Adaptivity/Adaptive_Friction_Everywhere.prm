@@ -9,7 +9,7 @@ subsection main
 
 	subsection geometry
 		set geometry = EN_10       #reactangle|half_matrix|matrix|hole|ENF|EN_10
-		set initial_refinement= 6
+		set initial_refinement= 5
 		set E1 = 18e+3
 		set nu1= 0.15
 		set E2 = 700
@@ -39,7 +39,7 @@ subsection main
 		set G_cn  = 1e-3
 		
 		set with_penetration = false
-		set penetration_penalty = 1e+4	
+		set penetration_penalty = 5e+3	
 	end
 	
 	subsection robustness
@@ -77,7 +77,7 @@ subsection main
 		set unloading = 2699
 		set reloading = 4599
 		set output_directory = ./output1
-		set file_name = forces0
+		set file_name = forces2
 		set output_frequency = 1
 	end	
 end
