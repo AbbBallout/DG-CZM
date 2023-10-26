@@ -5,41 +5,41 @@ subsection main
 	set degree           = 1
 	set quadrature       = gauss       #gauss|lobatto|gauss-reduced
 	set symmetry         = 0
- 	set penalty_factor   = 100
+ 	set penalty_factor   = 10
 
 	subsection geometry
-		set geometry = EN_10       #reactangle|half_matrix|matrix|hole|ENF|EN_10
-		set initial_refinement= 6
-		set E1 = 18e+3
-		set nu1= 0.15
-		set E2 = 700
-		set nu2= 0.3
+		set geometry = matrix       #reactangle|half_matrix|matrix|hole|ENF|EN_10
+		set initial_refinement= 0
+		set E1 = 4e+3
+		set nu1= 0.4
+		set E2 = 40e+3
+		set nu2= 0.33
 		set is_distorted = false
 	end
 	
 	subsection CZM
 		set is_everywhere = true
-		set type    = intrinsic   #extrinsic|intrinsic
-		set friction_coff = 0.6
+		set type    = extrinsic   #extrinsic|intrinsic
+		set friction_coff = 0
 
 		### interface ####
-		set sig_ics = 0.1
-		set sig_icn = 0.1
-		set delta_ics = 1e-4
-		set delta_icn = 1e-4
-		set G_ics  =  1e-3
-		set G_icn  = 1e-3
+		set sig_ics = 10
+		set sig_icn = 10
+		set delta_ics = 1e-5
+		set delta_icn = 1e-5
+		set G_ics  =  0.05
+		set G_icn  = 0.05
 		
 		### bulk ###
-		set sig_cs = 0.1
-		set sig_cn = 0.1
-		set delta_cs = 1e-4
-		set delta_cn = 1e-4
-		set G_cs  =  1.25e-3
-		set G_cn  = 1.25e-3
+		set sig_cs = 30
+		set sig_cn = 30
+		set delta_cs = 3e-5
+		set delta_cn = 3e-5
+		set G_cs  =  0.25
+		set G_cn  = 0.25
 		
 		set with_penetration = false
-		set penetration_penalty = 7e+4	
+		set penetration_penalty = 1e+3	
 	end
 	
 	subsection robustness
@@ -49,8 +49,8 @@ subsection main
 		set with_adaptive_relaxation = true
 
 		####
-		set is_regularize = true
-		set regularization= 8
+		set is_regularize = false
+		set regularization= 5
 			
 		####
 		set always_check_for_damage_and_unloading = false
@@ -68,20 +68,20 @@ subsection main
 	subsection adaptivity
 	 	set with_adaptivity  = false
 	 	set theshold_stress_factor = 0.8    #less than one
-	 	set max_cell_level  =6
+	 	set max_cell_level  = 6
 	end
 	
 	
 	subsection solver_control
-		set cycles= 2500
-		set max_nonlin_iter = 500
+		set cycles= 120
+		set max_nonlin_iter = 100
 		set error = 1e-8
-		set displacementx = 1e-4
-		set displacementy = 0
-		set unloading = 2699
+		set displacementx = 0
+		set displacementy = 2e-4
+		set unloading = 3099
 		set reloading = 4599
-		set output_directory = ./output1
-		set file_name = forces3
-		set output_frequency = 10
+		set output_directory = ./tmp
+		set file_name = forces1
+		set output_frequency = 1
 	end	
 end

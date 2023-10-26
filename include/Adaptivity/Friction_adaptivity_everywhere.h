@@ -136,6 +136,10 @@ namespace Friction_adaptivity_everywhere
                 add_parameter("damage_error", damage_error, " ", this->prm, Patterns::Double());
                 add_parameter("external_iterations_error", external_iterations_error, " ", this->prm, Patterns::Double());
                 add_parameter("ignore_non_convergence", ignore_non_convergence, " ", this->prm, Patterns::Bool());
+                add_parameter("is_regularize", is_regularize, " ", this->prm, Patterns::Bool());
+                add_parameter("regularization", regularization, " ", this->prm, Patterns::Double());
+
+                
             }
             leave_subsection();
 
@@ -170,10 +174,11 @@ namespace Friction_adaptivity_everywhere
                sig_ics = 0, delta_ics = 0, k_ius = 0, sig_icn = 0, G_ics = 0, delta_icn = 0, k_iun = 0, G_icn = 0,
                sig_cs = 0, delta_cs = 0, k_us = 0, sig_cn = 0, G_cs = 0, delta_cn = 0, k_un = 0, G_cn = 0,
                CZM_penalty_factor = 0, friction_coff = 0, theshold_stress_factor = 0, damage_error = 0, external_iterations_error = 0,
-               newton_relaxation = 0, penetration_penalty = 0;
+               newton_relaxation = 0, penetration_penalty = 0, regularization=0;
         std::string quadrature = "gauss", type = "extrinsic", geometry = "reactangle", output_directory = "output", file_name = "forces";
         bool is_distorted = 0, with_penetration = 0, with_adaptivity = 0, is_everywhere = 0, update_damage_once = 0,
-             always_check_for_damage_and_unloading = 0, ignore_non_convergence = 0, with_adaptive_relaxation = 0;
+             always_check_for_damage_and_unloading = 0, ignore_non_convergence = 0, with_adaptive_relaxation = 0,
+             is_regularize=0;
     };
 
     template <int dim>
@@ -895,7 +900,7 @@ namespace Friction_adaptivity_everywhere
                 double h = 55.0, l = 240.0, b = 10.0;
 
                 Tensor<1, dim> compressive_force;
-                compressive_force[1] = -0.1;
+                compressive_force[1] = -0.6;
 
                 if (cell->face(face_no)->boundary_id() == 0 && std::abs(cell->face(face_no)->center()[1]) < h / 2 && cell->material_id() == 1)
                     for (unsigned int point = 0; point < n_q_points; ++point)
@@ -1357,7 +1362,8 @@ namespace Friction_adaptivity_everywhere
                 }
 
                 // Regularize
-                // TCZ[0][0] += 10.0;
+                if(par.is_regularize)
+                TCZ[0][0] += par.regularization;
 
                 if (par.is_everywhere == false)
                     if (cell->material_id() == ncell->material_id())
@@ -2034,9 +2040,9 @@ namespace Friction_adaptivity_everywhere
             Tensor<1, dim> tangential;
             Tensor<1, dim> local_reaction;
 
-            // if ((cell->face(face_no)->boundary_id() == boundary_id))
+             if ((cell->face(face_no)->boundary_id() == boundary_id))
             //  if (cell->face(face_no)->boundary_id() == boundary_id && (std::abs(cell->face(face_no)->center()[0] - 70) < rad / 2))
-            if (cell->face(face_no)->boundary_id() == 0 && std::abs(cell->face(face_no)->center()[1]) < 55 / 2 && cell->material_id() == 1)
+           // if (cell->face(face_no)->boundary_id() == 0 && std::abs(cell->face(face_no)->center()[1]) < 55 / 2 && cell->material_id() == 1)
                 for (unsigned int point = 0; point < n_q_points; ++point)
                 {
 

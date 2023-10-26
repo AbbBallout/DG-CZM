@@ -21,7 +21,7 @@ plot()
 
 
 function plot_data(file_name, plot_1, plot_2, plot_3, max,in)
-    ff = readdlm("main/run/Adaptivity/output1/$file_name.txt")
+    ff = readdlm("main/run/Adaptivity/tmp/$file_name.txt")
     # println("Area under reaction= ", area_under_curve(sqrt.(ff[:, 1] .* ff[:, 1] + ff[:, 2] .* ff[:, 2]), sqrt.(ff[:, 3] .* ff[:, 3] + ff[:, 4] .* ff[:, 4])))
     # println("Area under shear= ", area_under_curve(abs.(ff[:, 6]), ff[:, 7]))
     # println("Area under normal= ", area_under_curve(abs.(ff[:, 5]), ff[:, 8]))
@@ -36,16 +36,16 @@ function plot_data(file_name, plot_1, plot_2, plot_3, max,in)
             linewidth=2.5,
             name=in)
 
-        # plot!(x, y,
-        #     seriestype=:scatter,
-        #     color="black", markersize=:2,
-        #     showlegend=false
-        # )
+        plot!(x, y,
+            seriestype=:scatter,
+            color="black", markersize=:2,
+            showlegend=false
+        )
     end
 
     if (plot_2)
-        x = sqrt.(ff[:, 5] .* ff[:, 5] + ff[:, 6] .* ff[:, 6])
-        y = sqrt.(ff[:, 7] .* ff[:, 7] + ff[:, 8] .* ff[:, 8])
+        x = sqrt.(ff[1:end-max, 5] .* ff[1:end-max, 5] + ff[1:end-max, 6] .* ff[1:end-max, 6])
+        y = sqrt.(ff[1:end-max, 7] .* ff[1:end-max, 7] + ff[1:end-max, 8] .* ff[1:end-max, 8])
         plot!(x, y,
             linewidth=1.5,
             color="red",
@@ -66,17 +66,20 @@ function plot_data(file_name, plot_1, plot_2, plot_3, max,in)
             linewidth=1.5,
             name="Mid-plane shear force vs tangential jump")
 
-        plot!(abs.(ff[:, 5]), ff[:, 8],
-            #color="cyan"  , 
-            linewidth=1.5,
-            name="Mid-plane normal force vs normal jump")
+
+
+        # plot!(abs.(ff[:, 5]), ff[:, 8],
+        #     #color="cyan"  , 
+        #     linewidth=1.5,
+        #     name="Mid-plane normal force vs normal jump")
     end
 end
 
-#plot_data("forces0", true, false, false,0)
-plot_data("forces1", true, false, false,0,"penalty 4e+4")
-plot_data("forces2", true, false, false,0,"penalty 5e+3")
-#plot_data("forces3", true, false, false,0)
+#plot_data("forces0", true, false, false,0,"mu 0")
+plot_data("forces1", true, false, false ,0,"reaction ")
+#plot_data("forces2", true, false, false,0,"penalty 6.5e+4 ")
+#plot_data("forces3", true, false, false,0,"penalty 7.0e+4 ")
+
 
 plot!(legend=:bottomright)
 xlabel!("Displacement [mm]")
@@ -96,12 +99,12 @@ plot!(grid=true, gridlinewidth=3)
 #     #  color="blue"  , 
 #     linewidth=3,
 #     name="Nguyen VP")
-#xlims!(0,2.1e-1)
+#xlims!(0,0.025)
 
 
 #plot!(size = [600,100])
 #plot!(legend=(0.50, 0.98))   
-#savefig("EN10_plot.svg")
+#savefig("traction_plot.pdf")
 
 ######### ENF analytical ####
 # L_enf=70.0
