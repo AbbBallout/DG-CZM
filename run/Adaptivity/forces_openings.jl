@@ -21,7 +21,7 @@ plot()
 
 
 function plot_data(file_name, plot_1, plot_2, plot_3, max,in)
-    ff = readdlm("main/run/Adaptivity/tmp/$file_name.txt")
+    ff = readdlm("main/run/Adaptivity/output1/$file_name.txt")
     # println("Area under reaction= ", area_under_curve(sqrt.(ff[:, 1] .* ff[:, 1] + ff[:, 2] .* ff[:, 2]), sqrt.(ff[:, 3] .* ff[:, 3] + ff[:, 4] .* ff[:, 4])))
     # println("Area under shear= ", area_under_curve(abs.(ff[:, 6]), ff[:, 7]))
     # println("Area under normal= ", area_under_curve(abs.(ff[:, 5]), ff[:, 8]))
@@ -68,17 +68,18 @@ function plot_data(file_name, plot_1, plot_2, plot_3, max,in)
 
 
 
-        # plot!(abs.(ff[:, 5]), ff[:, 8],
-        #     #color="cyan"  , 
-        #     linewidth=1.5,
-        #     name="Mid-plane normal force vs normal jump")
+        plot!(abs.(ff[:, 5]), ff[:, 8],
+            #color="cyan"  , 
+            linewidth=1.5,
+            name="Mid-plane normal force vs normal jump")
     end
 end
 
 #plot_data("forces0", true, false, false,0,"mu 0")
-plot_data("forces1", true, false, false ,0,"reaction ")
+plot_data("forces1", true, false, false ,0,"EN_10")
 #plot_data("forces2", true, false, false,0,"penalty 6.5e+4 ")
 #plot_data("forces3", true, false, false,0,"penalty 7.0e+4 ")
+
 
 
 plot!(legend=:bottomright)
@@ -88,23 +89,23 @@ plot!(grid=true, gridlinewidth=3)
 #title!("Force vs Distance")
 
 
-# using BSplineKit
+using BSplineKit
 
-# Nguyenx = [0.0, 1.4e-3, 4.9e-3, 6e-3, 8.15e-3,8.4e-3]
-# Nguyeny = [0.0, 8.8, 18.9, 21.0, 17.8,16.6]
+Nguyenx = [0.0, 1.4e-3, 4.9e-3, 6e-3, 8.15e-3,8.4e-3]
+Nguyeny = [0.0, 8.8, 18.9, 21.0, 17.8,16.6]
 
-# S = interpolate(Nguyenx, Nguyeny, BSplineOrder(4))
-# xlims!(0, 8.15e-3)
-# plot!(Nguyenx -> S(Nguyenx),
-#     #  color="blue"  , 
-#     linewidth=3,
-#     name="Nguyen VP")
-#xlims!(0,0.025)
+S = interpolate(Nguyenx, Nguyeny, BSplineOrder(4))
+xlims!(0, 8.15e-3)
+plot!(Nguyenx -> S(Nguyenx),
+    #  color="blue"  , 
+    linewidth=3,
+    name="Nguyen VP")
+xlims!(0,0.009)
 
 
 #plot!(size = [600,100])
 #plot!(legend=(0.50, 0.98))   
-#savefig("traction_plot.pdf")
+#savefig("MF_plot.pdf")
 
 ######### ENF analytical ####
 # L_enf=70.0

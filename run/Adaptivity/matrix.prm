@@ -5,7 +5,7 @@ subsection main
 	set degree           = 1
 	set quadrature       = gauss       #gauss|lobatto|gauss-reduced
 	set symmetry         = 0
- 	set penalty_factor   = 10
+ 	set penalty_factor   = 20
 
 	subsection geometry
 		set geometry = matrix       #reactangle|half_matrix|matrix|hole|ENF|EN_10
@@ -19,7 +19,7 @@ subsection main
 	
 	subsection CZM
 		set is_everywhere = true
-		set type    = extrinsic   #extrinsic|intrinsic
+		set type    = intrinsic   #extrinsic|intrinsic
 		set friction_coff = 0
 
 		### interface ####
@@ -28,7 +28,7 @@ subsection main
 		set delta_ics = 1e-5
 		set delta_icn = 1e-5
 		set G_ics  =  0.05
-		set G_icn  = 0.05
+		set G_icn  =  0.05
 		
 		### bulk ###
 		set sig_cs = 30
@@ -38,8 +38,7 @@ subsection main
 		set G_cs  =  0.25
 		set G_cn  = 0.25
 		
-		set with_penetration = false
-		set penetration_penalty = 1e+3	
+		set penetration_penalty = 1e+4
 	end
 	
 	subsection robustness
@@ -50,7 +49,7 @@ subsection main
 
 		####
 		set is_regularize = false
-		set regularization= 5
+		set regularization= 0
 			
 		####
 		set always_check_for_damage_and_unloading = false
@@ -68,19 +67,19 @@ subsection main
 	subsection adaptivity
 	 	set with_adaptivity  = false
 	 	set theshold_stress_factor = 0.8    #less than one
-	 	set max_cell_level  = 6
+	 	set max_cell_level  = 1
 	end
 	
 	
 	subsection solver_control
-		set cycles= 120
-		set max_nonlin_iter = 100
+		set cycles= 100
+		set max_nonlin_iter = 200
 		set error = 1e-8
-		set displacementx = 0
-		set displacementy = 2e-4
-		set unloading = 3099
+		set displacementx =  0
+		set displacementy = 1e-4
+		set unloading = 2699
 		set reloading = 4599
-		set output_directory = ./tmp
+		set output_directory = ./output1
 		set file_name = forces1
 		set output_frequency = 1
 	end	

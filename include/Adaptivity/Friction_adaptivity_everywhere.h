@@ -55,6 +55,14 @@
 
 #include <deal.II/numerics/error_estimator.h>
 #include <deal.II/base/mpi_consensus_algorithms.h>
+
+
+////////////// WARNING ////////////////////
+//!!!!!!!!!!!!!!!!!!!! 
+//////// Don't run in paralle with mesh adaptivity //////////
+///////////////////////////////////////
+//////////////////////////////////////
+
 namespace LA
 {
     using namespace dealii::LinearAlgebraPETSc;
@@ -104,7 +112,6 @@ namespace Friction_adaptivity_everywhere
             {
                 add_parameter("is_everywhere", is_everywhere, " ", this->prm, Patterns::Bool());
                 add_parameter("type", type, " ", this->prm, Patterns::Selection("extrinsic|intrinsic"));
-                add_parameter("with_penetration", with_penetration, " ", this->prm, Patterns::Bool());
 
                 add_parameter("penetration_penalty", penetration_penalty, " ", this->prm, Patterns::Double());
 
@@ -138,8 +145,6 @@ namespace Friction_adaptivity_everywhere
                 add_parameter("ignore_non_convergence", ignore_non_convergence, " ", this->prm, Patterns::Bool());
                 add_parameter("is_regularize", is_regularize, " ", this->prm, Patterns::Bool());
                 add_parameter("regularization", regularization, " ", this->prm, Patterns::Double());
-
-                
             }
             leave_subsection();
 
@@ -174,11 +179,11 @@ namespace Friction_adaptivity_everywhere
                sig_ics = 0, delta_ics = 0, k_ius = 0, sig_icn = 0, G_ics = 0, delta_icn = 0, k_iun = 0, G_icn = 0,
                sig_cs = 0, delta_cs = 0, k_us = 0, sig_cn = 0, G_cs = 0, delta_cn = 0, k_un = 0, G_cn = 0,
                CZM_penalty_factor = 0, friction_coff = 0, theshold_stress_factor = 0, damage_error = 0, external_iterations_error = 0,
-               newton_relaxation = 0, penetration_penalty = 0, regularization=0;
+               newton_relaxation = 0, penetration_penalty = 0, regularization = 0;
         std::string quadrature = "gauss", type = "extrinsic", geometry = "reactangle", output_directory = "output", file_name = "forces";
-        bool is_distorted = 0, with_penetration = 0, with_adaptivity = 0, is_everywhere = 0, update_damage_once = 0,
+        bool is_distorted = 0, with_adaptivity = 0, is_everywhere = 0, update_damage_once = 0,
              always_check_for_damage_and_unloading = 0, ignore_non_convergence = 0, with_adaptive_relaxation = 0,
-             is_regularize=0;
+             is_regularize = 0;
     };
 
     template <int dim>
@@ -1117,44 +1122,41 @@ namespace Friction_adaptivity_everywhere
                 Tensor<1, dim> law_g_unshifted = law_g;
                 law_g += shift;
 
-                law_p[0] = heaviside(law_g[1]) * law_g[0] + heaviside(-law_g[1]) * quadrature_points_history[point].Freddi_g;
-                law_q[1] = heaviside(law_g[1]) * law_g[1];
+                double coff = par.friction_coff;
+                // for robustness
+                if (non_lin <= 1 && coff > 0 + 1e-6)
+                    coff = 10;
+
+                if (coff > 1e-6)
+                    law_p[0] = heaviside(law_g[1]) * law_g[0] + heaviside(-law_g[1]) * quadrature_points_history[point].Freddi_g;
+                else
+                    law_p[0] = law_g[0];
+                law_q[1] = law_g[1];
 
                 // Columb and columb criteria
                 Tensor<1, dim> tau_trial = slope * (law_g - (law_p + law_q));
-
-                if (par.with_penetration == false)
-                    tau_trial[1] += heaviside(-law_g_unshifted[1]) * par.penetration_penalty * law_g_unshifted[1];
-
-                double coff = par.friction_coff;
-                // for robustness
-                if (non_lin <= 1 && coff > 0 + 1e-9)
-                    coff = 10;
+                tau_trial[1] += heaviside(-law_g_unshifted[1]) * par.penetration_penalty * law_g_unshifted[1];
 
                 double Coulomb = std::abs(tau_trial[0]) + coff * tau_trial[1];
 
-                if ((Coulomb > 0 && law_g[1] < 0))
+                if (Coulomb > 0 && law_g[1] < 0 && coff > 1e-6)
                 {
                     quadrature_points_history[point].Freddi_g += (1 / slope[0][0]) * Coulomb * sign(tau_trial[0]);
                     law_p[0] = quadrature_points_history[point].Freddi_g;
                 }
 
                 // caclulation of damage
-                Tensor<1, dim> tau_u, temp_g;
-                temp_g = law_g;
-                temp_g[1] = heaviside(temp_g[1]) * temp_g[1];
-
                 double damage = 0, delta_ec = 0, delta_eu = 0;
 
-                delta_ec = std::pow(slope[0][0] * (temp_g[0] / law_g.norm()) / sig_c[0], 2);
-                delta_ec += std::pow(slope[1][1] * (temp_g[1] / law_g.norm()) / sig_c[1], 2);
+                delta_ec = std::pow(slope[0][0] * (law_g[0] / law_g.norm()) / sig_c[0], 2);
+                delta_ec += std::pow(slope[1][1] * (law_g[1] / law_g.norm()) / sig_c[1], 2);
                 delta_ec = 1 / sqrt(delta_ec);
 
-                delta_eu = slope[0][0] * delta_ec * std::pow(temp_g[0] / temp_g.norm(), 2) / (2 * G_c[0]);
-                delta_eu += slope[1][1] * delta_ec * std::pow(temp_g[1] / temp_g.norm(), 2) / (2 * G_c[1]);
+                delta_eu = slope[0][0] * delta_ec * std::pow(law_g[0] / law_g.norm(), 2) / (2 * G_c[0]);
+                delta_eu += slope[1][1] * delta_ec * std::pow(law_g[1] / law_g.norm(), 2) / (2 * G_c[1]);
                 delta_eu = 1 / delta_eu;
 
-                damage = delta_eu * (temp_g.norm() - delta_ec) / (temp_g.norm() * (delta_eu - delta_ec));
+                damage = delta_eu * (law_g.norm() - delta_ec) / (law_g.norm() * (delta_eu - delta_ec));
 
                 if (cycle == 0 /*&& non_lin == 1 */) // initially everything is nan
                     damage = 0;
@@ -1241,7 +1243,7 @@ namespace Friction_adaptivity_everywhere
                     TCZ[1][1] = 1.0;
 
                     // dTCZ/dp * dp/du
-                    if (law_g[1] > 0)
+                    if (law_g[1] > 0 || coff < 1e-6)
                     {
                         Tensor<2, dim> dp_du;
                         dp_du[0][0] = 1.0;
@@ -1255,8 +1257,7 @@ namespace Friction_adaptivity_everywhere
                             dp_du[0][0] = 1.0;
                             dp_du[0][1] = coff * ((slope[1][1]) / slope[0][0]) * sign(law_g[0] - quadrature_points_history[point].Freddi_g);
 
-                            if (par.with_penetration == false)
-                                dp_du[0][1] += coff * ((par.penetration_penalty) / slope[0][0]) * sign(law_g[0] - quadrature_points_history[point].Freddi_g);
+                            dp_du[0][1] += coff * ((par.penetration_penalty) / slope[0][0]) * sign(law_g[0] - quadrature_points_history[point].Freddi_g);
 
                             TCZ += -damage * dp_du;
                         }
@@ -1264,7 +1265,7 @@ namespace Friction_adaptivity_everywhere
 
                     // dTCZ/dq * dq/du
                     Tensor<2, dim> dq_du;
-                    dq_du[1][1] = heaviside(law_g[1]);
+                    dq_du[1][1] = 1.0;
                     TCZ += -damage * dq_du;
 
                     TCZ = slope * TCZ;
@@ -1275,11 +1276,8 @@ namespace Friction_adaptivity_everywhere
                     TCZ[0] *= 1 + shift[0] / (quadrature_points_history[point].law_g[0] - shift[0] + small);
                     TCZ[1] *= 1 + shift[1] / (quadrature_points_history[point].law_g[1] - shift[1] + small);
 
-                    if (par.with_penetration == false)
-                    {
-                        TCZ_res[1] += heaviside(-law_g_unshifted[1]) * par.penetration_penalty * law_g_unshifted[1];
-                        TCZ[1][1] += heaviside(-law_g_unshifted[1]) * par.penetration_penalty;
-                    }
+                    TCZ_res[1] += heaviside(-law_g_unshifted[1]) * par.penetration_penalty * law_g_unshifted[1];
+                    TCZ[1][1] += heaviside(-law_g_unshifted[1]) * par.penetration_penalty;
                 }
                 else
                 {
@@ -1310,13 +1308,10 @@ namespace Friction_adaptivity_everywhere
                             ddamage_du[0] += -ddelta_dus * (delta_eu - delta_ec) * delta_eu * (law_g.norm() - delta_ec);
                             ddamage_du[0] += -(duc_dus - dec_dus) * law_g.norm() * delta_eu * (law_g.norm() - delta_ec);
 
-                            if (law_g[1] > 0)
-                            {
-                                ddamage_du[1] = duc_dun * (law_g.norm() - delta_ec) * law_g.norm() * (delta_eu - delta_ec);
-                                ddamage_du[1] += (ddelta_dun - dec_dun) * delta_eu * law_g.norm() * (delta_eu - delta_ec);
-                                ddamage_du[1] += -ddelta_dun * (delta_eu - delta_ec) * delta_eu * (law_g.norm() - delta_ec);
-                                ddamage_du[1] += -(duc_dun - dec_dun) * law_g.norm() * delta_eu * (law_g.norm() - delta_ec);
-                            }
+                            ddamage_du[1] = duc_dun * (law_g.norm() - delta_ec) * law_g.norm() * (delta_eu - delta_ec);
+                            ddamage_du[1] += (ddelta_dun - dec_dun) * delta_eu * law_g.norm() * (delta_eu - delta_ec);
+                            ddamage_du[1] += -ddelta_dun * (delta_eu - delta_ec) * delta_eu * (law_g.norm() - delta_ec);
+                            ddamage_du[1] += -(duc_dun - dec_dun) * law_g.norm() * delta_eu * (law_g.norm() - delta_ec);
 
                             ddamage_du *= 1 / std::pow(law_g.norm() * (delta_eu - delta_ec), 2);
 
@@ -1324,8 +1319,7 @@ namespace Friction_adaptivity_everywhere
                         }
 
                     // dTCZ/dp * dp/du
-
-                    if (law_g[1] > 0)
+                    if (law_g[1] > 0 || coff < 1e-6)
                     {
                         Tensor<2, dim> dp_du;
                         dp_du[0][0] = 1.0;
@@ -1340,8 +1334,7 @@ namespace Friction_adaptivity_everywhere
                             dp_du[0][0] = 1.0;
                             dp_du[0][1] = coff * ((slope[1][1]) / slope[0][0]) * sign(law_g[0] - quadrature_points_history[point].Freddi_g);
 
-                            if (par.with_penetration == false)
-                                dp_du[0][1] += coff * ((par.penetration_penalty) / slope[0][0]) * sign(law_g[0] - quadrature_points_history[point].Freddi_g);
+                            dp_du[0][1] += coff * ((par.penetration_penalty) / slope[0][0]) * sign(law_g[0] - quadrature_points_history[point].Freddi_g);
 
                             TCZ += -damage * dp_du;
                         }
@@ -1349,21 +1342,19 @@ namespace Friction_adaptivity_everywhere
 
                     // dTCZ/dq * dq/du
                     Tensor<2, dim> dq_du;
-                    dq_du[1][1] = heaviside(law_g[1]);
+                    dq_du[1][1] = 1;
                     TCZ += -damage * dq_du;
 
                     TCZ = slope * TCZ;
 
-                    if (par.with_penetration == false)
-                    {
-                        TCZ_res[1] += heaviside(-law_g_unshifted[1]) * par.penetration_penalty * law_g_unshifted[1];
-                        TCZ[1][1] += heaviside(-law_g_unshifted[1]) * par.penetration_penalty;
-                    }
+                    TCZ_res[1] += heaviside(-law_g_unshifted[1]) * par.penetration_penalty * law_g_unshifted[1];
+                    TCZ[1][1] += heaviside(-law_g_unshifted[1]) * par.penetration_penalty;
                 }
 
                 // Regularize
-                if(par.is_regularize)
-                TCZ[0][0] += par.regularization;
+                if (par.is_regularize)
+                    if (damage > 1 - 1e-4)
+                        TCZ[0][0] += par.regularization;
 
                 if (par.is_everywhere == false)
                     if (cell->material_id() == ncell->material_id())
@@ -1504,7 +1495,7 @@ namespace Friction_adaptivity_everywhere
                               copier,
                               scratch_data,
                               copy_data,
-                              MeshWorker::assemble_own_cells | MeshWorker::assemble_boundary_faces | MeshWorker::assemble_own_interior_faces_once | MeshWorker::assemble_ghost_faces_once,
+                              MeshWorker::assemble_own_cells| MeshWorker::assemble_boundary_faces | MeshWorker::assemble_own_interior_faces_once | MeshWorker::assemble_ghost_faces_once,
                               boundary_worker,
                               face_worker);
 
@@ -2014,7 +2005,6 @@ namespace Friction_adaptivity_everywhere
         interface_stress = 0;
         interface_jump = 0;
         unsigned int counter = 0;
-        double rad = 2;
         const auto boundary_worker = [&](const auto &cell,
                                          const unsigned int &face_no,
                                          ScratchData<dim> &scratch_data,
@@ -2042,7 +2032,7 @@ namespace Friction_adaptivity_everywhere
 
              if ((cell->face(face_no)->boundary_id() == boundary_id))
             //  if (cell->face(face_no)->boundary_id() == boundary_id && (std::abs(cell->face(face_no)->center()[0] - 70) < rad / 2))
-           // if (cell->face(face_no)->boundary_id() == 0 && std::abs(cell->face(face_no)->center()[1]) < 55 / 2 && cell->material_id() == 1)
+            //if (cell->face(face_no)->boundary_id() == 0 && std::abs(cell->face(face_no)->center()[1]) < 55 / 2 && cell->material_id() == 1)
                 for (unsigned int point = 0; point < n_q_points; ++point)
                 {
 
@@ -2218,7 +2208,7 @@ namespace Friction_adaptivity_everywhere
         if (par.is_distorted)
         {
 
-            GridTools::distort_random(0.2, triangulation, true, 2882);
+            GridTools::distort_random(0.1, triangulation, true, 2882);
             // triangulation.refine_global(1);
             // GridTools::rotate(-M_PI/2, triangulation);
         }
