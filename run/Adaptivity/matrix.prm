@@ -3,13 +3,13 @@ subsection main
 	set testing_F = 0
 	 
 	set degree           = 1
-	set quadrature       = gauss       #gauss|lobatto|gauss-reduced
+	set quadrature       = lobatto       #gauss|lobatto|gauss-reduced
 	set symmetry         = 0
- 	set penalty_factor   = 20
+ 	set penalty_factor   = 5
 
 	subsection geometry
 		set geometry = matrix       #reactangle|half_matrix|matrix|hole|ENF|EN_10
-		set initial_refinement= 0
+		set initial_refinement= 1
 		set E1 = 4e+3
 		set nu1= 0.4
 		set E2 = 40e+3
@@ -19,7 +19,7 @@ subsection main
 	
 	subsection CZM
 		set is_everywhere = true
-		set type    = intrinsic   #extrinsic|intrinsic
+		set type    = extrinsic   #extrinsic|intrinsic
 		set friction_coff = 0
 
 		### interface ####
@@ -48,8 +48,8 @@ subsection main
 		set with_adaptive_relaxation = true
 
 		####
-		set is_regularize = false
-		set regularization= 0
+		set is_regularize = true
+		set regularization= 2
 			
 		####
 		set always_check_for_damage_and_unloading = false
@@ -66,21 +66,21 @@ subsection main
 	
 	subsection adaptivity
 	 	set with_adaptivity  = false
-	 	set theshold_stress_factor = 0.8    #less than one
+	 	set threshold_stress_factor = 0.8    #less than one
 	 	set max_cell_level  = 1
 	end
 	
 	
 	subsection solver_control
-		set cycles= 100
+		set cycles= 200
 		set max_nonlin_iter = 200
 		set error = 1e-8
 		set displacementx =  0
-		set displacementy = 1e-4
+		set displacementy = 2e-4
 		set unloading = 2699
 		set reloading = 4599
 		set output_directory = ./output1
-		set file_name = forces1
+		set file_name = forces3
 		set output_frequency = 1
 	end	
 end

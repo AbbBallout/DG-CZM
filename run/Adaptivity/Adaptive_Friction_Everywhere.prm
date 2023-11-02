@@ -8,27 +8,27 @@ subsection main
  	set penalty_factor   = 100
 
 	subsection geometry
-		set geometry = EN_10       #reactangle|half_matrix|matrix|hole|ENF|EN_10
-		set initial_refinement= 5
-		set E1 = 18e+3
-		set nu1= 0.15
-		set E2 = 700
-		set nu2= 0.3
+		set geometry = reactangle       #reactangle|half_matrix|matrix|hole|ENF|EN_10
+		set initial_refinement= 4
+		set E1 = 1e+2
+		set nu1= 0.33
+		set E2 = 1e+2
+		set nu2= 0.33
 		set is_distorted = false
 	end
 	
 	subsection CZM
-		set is_everywhere = true
-		set type    = intrinsic   #extrinsic|intrinsic
-		set friction_coff = 0.6
+		set is_everywhere = false
+		set type    = extrinsic   #extrinsic|intrinsic
+		set friction_coff = 0.95
 
 		### interface ####
 		set sig_ics = 0.1
 		set sig_icn = 0.1
-		set delta_ics = 1e-4
-		set delta_icn = 1e-4
-		set G_ics  =  1.25e-3
-		set G_icn  =  1.25e-3
+		set delta_ics = 1e-5
+		set delta_icn = 1e-5
+		set G_ics  =  2e-3
+		set G_icn  =  2e-3
 		
 		### bulk ###
 		set sig_cs = 0.1
@@ -48,11 +48,12 @@ subsection main
 		set with_adaptive_relaxation = true
 
 		####
-		set is_regularize = false
-		set regularization= 2
+		set regularization1= 1.0
+		set regularization2= 0.1
+
 			
 		####
-		set always_check_for_damage_and_unloading = false
+		set always_check_for_damage_and_unloading = true
 				
 		####
 		set ignore_non_convergence = false
@@ -65,20 +66,20 @@ subsection main
 	end
 	
 	subsection adaptivity
-	 	set with_adaptivity  = false
-	 	set theshold_stress_factor = 0.8    #less than one
+	 	set with_adaptivity  = true
+	 	set threshold_stress_factor = 0.8    #less than one
 	 	set max_cell_level  = 6
 	end
 	
 	
 	subsection solver_control
-		set cycles= 80
+		set cycles= 150
 		set max_nonlin_iter = 200
 		set error = 1e-8
 		set displacementx =  1e-3
-		set displacementy =  0
-		set unloading = 2699
-		set reloading = 4599
+		set displacementy =  -5e-3
+		set unloading = 70
+		set reloading = 100
 		set output_directory = ./output1
 		set file_name = forces1
 		set output_frequency = 1

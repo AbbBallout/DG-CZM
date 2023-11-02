@@ -75,32 +75,35 @@ function plot_data(file_name, plot_1, plot_2, plot_3, max,in)
     end
 end
 
-#plot_data("forces0", true, false, false,0,"mu 0")
-plot_data("forces1", true, false, false ,0,"EN_10")
-#plot_data("forces2", true, false, false,0,"penalty 6.5e+4 ")
-#plot_data("forces3", true, false, false,0,"penalty 7.0e+4 ")
+
+plot_data("forces1", true, true, true ,0,"rec")
+#plot_data("forces2", true, false, false ,0,"refine 1 + extrinsic + penetration 1e+5 + factor 10  + Lobatto")
+#plot_data("forces3", true, false, false ,0,"refine 1 + extrinsic + penetration 1e+4 + factor 10  + Lobatto")
 
 
 
-plot!(legend=:bottomright)
+
+
+plot!(legend=:topright)
 xlabel!("Displacement [mm]")
 ylabel!("Force [N/mm]")
 plot!(grid=true, gridlinewidth=3)
 #title!("Force vs Distance")
 
 
-using BSplineKit
+# using BSplineKit
 
-Nguyenx = [0.0, 1.4e-3, 4.9e-3, 6e-3, 8.15e-3,8.4e-3]
-Nguyeny = [0.0, 8.8, 18.9, 21.0, 17.8,16.6]
+# Nguyenx = [0.0, 1.4e-3, 4.9e-3, 6e-3, 8.15e-3,8.4e-3]
+# Nguyeny = [0.0, 8.8, 18.9, 21.0, 17.8,16.6]
 
-S = interpolate(Nguyenx, Nguyeny, BSplineOrder(4))
-xlims!(0, 8.15e-3)
-plot!(Nguyenx -> S(Nguyenx),
-    #  color="blue"  , 
-    linewidth=3,
-    name="Nguyen VP")
-xlims!(0,0.009)
+# S = interpolate(Nguyenx, Nguyeny, BSplineOrder(4))
+# xlims!(0, 8.15e-3)
+# plot!(Nguyenx -> S(Nguyenx),
+#     #  color="blue"  , 
+#     markersize=:2,
+#     seriestype=:scatter,
+#     name="Nguyen V.P. 2014")
+# xlims!(0,0.012)
 
 
 #plot!(size = [600,100])
