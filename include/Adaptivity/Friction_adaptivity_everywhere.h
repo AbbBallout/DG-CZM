@@ -1352,20 +1352,18 @@ namespace Friction_adaptivity_everywhere
                 }
 
                 // Regularize
-                // if (law_g[1] < 0)
-                //     if (damage > 0)
-                //     {
-                //         TCZ[0][0] += par.regularization1;
-
-                //         if (law_g[1] > -1e-12)
-                //             TCZ[1][0] += par.regularization2;
-                //     }
-
                 if (law_g[1] < 0)
-                {
-                    TCZ[0][0] += par.regularization3;
-                    TCZ[1][0] += par.regularization3;
-                }
+                    if (damage > 0)
+                    {
+                        TCZ[0][0] += par.regularization1;
+
+                        if (law_g[1] > -1e-12)
+                            TCZ[1][0] += par.regularization2;
+
+                         TCZ[0][0] += par.regularization3;
+                         TCZ[1][0] += par.regularization3;
+                    }
+
 
                 if (par.is_everywhere == false)
                     if (cell->material_id() == ncell->material_id())
@@ -1531,7 +1529,7 @@ namespace Friction_adaptivity_everywhere
             if (system_rhs.l2_norm() > prev_error)
                 newton_relaxation = newton_relaxation * 0.75;
             else if (system_rhs.l2_norm() < 100)
-                newton_relaxation = newton_relaxation * 1.1;
+                newton_relaxation = newton_relaxation * 1.2;
 
             if (newton_relaxation < 0.05)
                 newton_relaxation = 0.05;

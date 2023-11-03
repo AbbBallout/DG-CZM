@@ -91,19 +91,19 @@ plot!(grid=true, gridlinewidth=3)
 #title!("Force vs Distance")
 
 
-# using BSplineKit
+using BSplineKit
 
-# Nguyenx = [0.0, 1.4e-3, 4.9e-3, 6e-3, 8.15e-3,8.4e-3]
-# Nguyeny = [0.0, 8.8, 18.9, 21.0, 17.8,16.6]
+Nguyenx = [0.0, 1.4e-3, 4.9e-3, 6e-3, 8.15e-3,8.4e-3]
+Nguyeny = [0.0, 8.8, 18.9, 21.0, 17.8,16.6]
 
-# S = interpolate(Nguyenx, Nguyeny, BSplineOrder(4))
-# xlims!(0, 8.15e-3)
-# plot!(Nguyenx -> S(Nguyenx),
-#     #  color="blue"  , 
-#     markersize=:2,
-#     seriestype=:scatter,
-#     name="Nguyen V.P. 2014")
-# xlims!(0,0.012)
+S = interpolate(Nguyenx, Nguyeny, BSplineOrder(4))
+xlims!(0, 8.15e-3)
+plot!(Nguyenx -> S(Nguyenx),
+    #  color="blue"  , 
+    markersize=:2,
+    seriestype=:scatter,
+    name="Nguyen V.P. 2014")
+xlims!(0,0.012)
 
 
 #plot!(size = [600,100])
