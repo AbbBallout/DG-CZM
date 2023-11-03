@@ -144,6 +144,8 @@ namespace Friction_adaptivity_everywhere
                 add_parameter("ignore_non_convergence", ignore_non_convergence, " ", this->prm, Patterns::Bool());
                 add_parameter("regularization1", regularization1, " ", this->prm, Patterns::Double());
                 add_parameter("regularization2", regularization2, " ", this->prm, Patterns::Double());
+                add_parameter("regularization3", regularization3, " ", this->prm, Patterns::Double());
+
             }
             leave_subsection();
 
@@ -178,7 +180,7 @@ namespace Friction_adaptivity_everywhere
                sig_ics = 0, delta_ics = 0, k_ius = 0, sig_icn = 0, G_ics = 0, delta_icn = 0, k_iun = 0, G_icn = 0,
                sig_cs = 0, delta_cs = 0, k_us = 0, sig_cn = 0, G_cs = 0, delta_cn = 0, k_un = 0, G_cn = 0,
                CZM_penalty_factor = 0, friction_coff = 0, threshold_stress_factor = 0, damage_error = 0, external_iterations_error = 0,
-               newton_relaxation = 0, penetration_penalty = 0, regularization1 = 0, regularization2 = 0;
+               newton_relaxation = 0, penetration_penalty = 0, regularization1 = 0, regularization2 = 0, regularization3 = 0;
         std::string quadrature = "gauss", type = "extrinsic", geometry = "reactangle", output_directory = "output", file_name = "forces";
         bool is_distorted = 0, with_adaptivity = 0, is_everywhere = 0, update_damage_once = 0,
              always_check_for_damage_and_unloading = 0, ignore_non_convergence = 0, with_adaptive_relaxation = 0;
@@ -1361,8 +1363,8 @@ namespace Friction_adaptivity_everywhere
 
                 if (law_g[1] < 0)
                 {
-                    TCZ[0][0] += par.regularization1;
-                    TCZ[1][0] += par.regularization1;
+                    TCZ[0][0] += par.regularization3;
+                    TCZ[1][0] += par.regularization3;
                 }
 
                 if (par.is_everywhere == false)

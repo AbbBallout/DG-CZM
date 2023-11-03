@@ -48,8 +48,10 @@ subsection main
 		set with_adaptive_relaxation = true
 
 		####
-		set regularization1=  200.0
-		set regularization2=   1.0
+		set regularization1=   1.0
+		set regularization2=   0.1
+		set regularization3=   200
+
 			
 		####
 		set always_check_for_damage_and_unloading = false
