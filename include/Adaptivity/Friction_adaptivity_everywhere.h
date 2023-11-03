@@ -1350,14 +1350,20 @@ namespace Friction_adaptivity_everywhere
                 }
 
                 // Regularize
-                if (law_g[1] < 0)
-                    if (damage > 0)
-                    {
-                        TCZ[0][0] += par.regularization1;
+                // if (law_g[1] < 0)
+                //     if (damage > 0)
+                //     {
+                //         TCZ[0][0] += par.regularization1;
 
-                        if (law_g[1] > -1e-12)
-                            TCZ[1][0] += par.regularization2;                    
-                    }
+                //         if (law_g[1] > -1e-12)
+                //             TCZ[1][0] += par.regularization2;
+                //     }
+
+                if (law_g[1] < 0)
+                {
+                    TCZ[0][0] += par.regularization1;
+                    TCZ[1][0] += par.regularization1;
+                }
 
                 if (par.is_everywhere == false)
                     if (cell->material_id() == ncell->material_id())
@@ -2236,12 +2242,12 @@ namespace Friction_adaptivity_everywhere
             if (cycle < par.unloading || cycle > par.reloading)
             {
                 disp[0] += par.displacementx;
-                disp[1] = par.displacementy;
+                disp[1] += par.displacementy;
             }
             else
             {
                 disp[0] -= par.displacementx;
-                disp[1] = par.displacementy;
+                disp[1] -= par.displacementy;
             }
 
             pcout << " ####### cycle = " << cycle << " and displacement = " << disp[1] << " ###### \n";

@@ -3,13 +3,13 @@ subsection main
 	set testing_F = 0
 	 
 	set degree           = 1
-	set quadrature       = lobatto       #gauss|lobatto|gauss-reduced
+	set quadrature       = gauss       #gauss|lobatto|gauss-reduced
 	set symmetry         = 0
- 	set penalty_factor   = 5
+ 	set penalty_factor   = 10
 
 	subsection geometry
 		set geometry = matrix       #reactangle|half_matrix|matrix|hole|ENF|EN_10
-		set initial_refinement= 1
+		set initial_refinement= 0
 		set E1 = 4e+3
 		set nu1= 0.4
 		set E2 = 40e+3
@@ -48,8 +48,8 @@ subsection main
 		set with_adaptive_relaxation = true
 
 		####
-		set is_regularize = true
-		set regularization= 2
+		set regularization1=  200.0
+		set regularization2=   1.0
 			
 		####
 		set always_check_for_damage_and_unloading = false
@@ -80,7 +80,7 @@ subsection main
 		set unloading = 2699
 		set reloading = 4599
 		set output_directory = ./output1
-		set file_name = forces3
+		set file_name = forces1
 		set output_frequency = 1
 	end	
 end

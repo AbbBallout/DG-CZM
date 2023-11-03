@@ -76,7 +76,7 @@ function plot_data(file_name, plot_1, plot_2, plot_3, max,in)
 end
 
 
-plot_data("forces1", true, true, true ,0,"rec")
+plot_data("forces1", true, false, false ,0,"mat")
 #plot_data("forces2", true, false, false ,0,"refine 1 + extrinsic + penetration 1e+5 + factor 10  + Lobatto")
 #plot_data("forces3", true, false, false ,0,"refine 1 + extrinsic + penetration 1e+4 + factor 10  + Lobatto")
 
@@ -84,7 +84,7 @@ plot_data("forces1", true, true, true ,0,"rec")
 
 
 
-plot!(legend=:topright)
+plot!(legend=:bottomright)
 xlabel!("Displacement [mm]")
 ylabel!("Force [N/mm]")
 plot!(grid=true, gridlinewidth=3)

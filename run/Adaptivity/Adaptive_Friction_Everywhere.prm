@@ -19,7 +19,7 @@ subsection main
 	
 	subsection CZM
 		set is_everywhere = false
-		set type    = extrinsic   #extrinsic|intrinsic
+		set type    = intrinsic   #extrinsic|intrinsic
 		set friction_coff = 0.95
 
 		### interface ####
@@ -48,7 +48,7 @@ subsection main
 		set with_adaptive_relaxation = true
 
 		####
-		set regularization1= 1.0
+		set regularization1= 2.0
 		set regularization2= 0.1
 
 			
@@ -73,13 +73,13 @@ subsection main
 	
 	
 	subsection solver_control
-		set cycles= 150
+		set cycles= 80
 		set max_nonlin_iter = 200
 		set error = 1e-8
 		set displacementx =  1e-3
-		set displacementy =  -5e-3
-		set unloading = 70
-		set reloading = 100
+		set displacementy =  -0.5e-3
+		set unloading = 2699
+		set reloading = 3599
 		set output_directory = ./output1
 		set file_name = forces1
 		set output_frequency = 1
