@@ -67,6 +67,20 @@ namespace LA
     using namespace dealii::LinearAlgebraPETSc;
 } // namespace LA
 
+template <int dim>
+dealii::Point<dim> grid_y_transform(const dealii::Point<dim> &pt_in)
+{
+
+    const double max_slope = 1.0;
+    double slope = (pt_in[1] - 0.5 * pt_in[1] * pt_in[1]) * max_slope;
+    dealii::Point<dim> pt_out = pt_in;
+
+    if (std::abs(pt_in[1] - 1) < 0.99)
+        pt_out[1] = pt_in[1] + slope * (pt_in[0] - 0.5);
+
+    return pt_out;
+}
+
 namespace Friction_adaptivity_everywhere
 {
     using namespace dealii;
@@ -145,7 +159,6 @@ namespace Friction_adaptivity_everywhere
                 add_parameter("regularization1", regularization1, " ", this->prm, Patterns::Double());
                 add_parameter("regularization2", regularization2, " ", this->prm, Patterns::Double());
                 add_parameter("regularization3", regularization3, " ", this->prm, Patterns::Double());
-
             }
             leave_subsection();
 
@@ -1360,10 +1373,9 @@ namespace Friction_adaptivity_everywhere
                         if (law_g[1] > -1e-12)
                             TCZ[1][0] += par.regularization2;
 
-                         TCZ[0][0] += par.regularization3;
-                         TCZ[1][0] += par.regularization3;
+                        TCZ[0][0] += par.regularization3;
+                        TCZ[1][0] += par.regularization3;
                     }
-
 
                 if (par.is_everywhere == false)
                     if (cell->material_id() == ncell->material_id())
@@ -1374,40 +1386,44 @@ namespace Friction_adaptivity_everywhere
                     }
 
                 if (par.geometry == "matrix")
+                {
                     if (cell->material_id() != 1 && ncell->material_id() != 1)
                         quadrature_points_history[point].is_damaged = false;
 
-                if (cell->material_id() != ncell->material_id())
-                    // if (q_points[point][1] > 0.91)
-                    if (quadrature_points_history[point].is_reunload)
-                        if (quadrature_points_history[point].is_damaged)
-                        {
-                            //  pcout << "At q point " << q_points[point] << "\n";
-                            //  pcout << "is damaged " << quadrature_points_history[point].is_damaged << "\n";
-                            // pcout << "is reloaded " << quadrature_points_history[point].is_reunload << "\n";
-                            //  pcout << "is fully damaged " << quadrature_points_history[point].is_fully_damaged << "\n";
-                            // pcout << "traction " << traction << "\n";
+                    if (std::abs(cell->center()[1] - 0.5) > 0.48)
+                        quadrature_points_history[point].is_damaged = false;
+                }
+                // if (cell->material_id() != ncell->material_id())
+                // if (q_points[point][1] > 0.91)
+                // if (quadrature_points_history[point].is_reunload)
+                if (quadrature_points_history[point].is_damaged)
+                {
+                    //   pcout << "At q point " << q_points[point] << "\n";
+                    //  pcout << "is damaged " << quadrature_points_history[point].is_damaged << "\n";
+                    // pcout << "is reloaded " << quadrature_points_history[point].is_reunload << "\n";
+                    //  pcout << "is fully damaged " << quadrature_points_history[point].is_fully_damaged << "\n";
+                    // pcout << "traction " << traction << "\n";
 
-                            // pcout << "damage " << damage << "\n";
-                            //   pcout << "history.max_damage " << quadrature_points_history[point].max_damage << "\n";
-                            // pcout << "shift " << shift << "\n";
-                            // pcout << "law_g shifted " << law_g << "\n";
-                            // pcout << "law_g unshifted " << law_g_unshifted << "\n";
-                            //  pcout << "history law_g " << quadrature_points_history[point].law_g << "\n";
-                            //  pcout << "history traction_init " << quadrature_points_history[point].traction_init << "\n";
+                    // pcout << "damage " << damage << "\n";
+                    //   pcout << "history.max_damage " << quadrature_points_history[point].max_damage << "\n";
+                    // pcout << "shift " << shift << "\n";
+                    // pcout << "law_g shifted " << law_g << "\n";
+                    // pcout << "law_g unshifted " << law_g_unshifted << "\n";
+                    //  pcout << "history law_g " << quadrature_points_history[point].law_g << "\n";
+                    //  pcout << "history traction_init " << quadrature_points_history[point].traction_init << "\n";
 
-                            //  pcout << "law_p " << law_p << "\n";
-                            // pcout << "law_q " << law_q << "\n";
-                            // pcout << "tau_trial " << tau_trial << "\n";
-                            // pcout << "tau_u " << tau_u << "\n";
-                            // pcout << "Coulomb " << Coulomb << "\n";
-                            //   pcout << "Freddi_g " << quadrature_points_history[point].Freddi_g << "\n";
+                    //  pcout << "law_p " << law_p << "\n";
+                    // pcout << "law_q " << law_q << "\n";
+                    // pcout << "tau_trial " << tau_trial << "\n";
+                    // pcout << "tau_u " << tau_u << "\n";
+                    // pcout << "Coulomb " << Coulomb << "\n";
+                    //   pcout << "Freddi_g " << quadrature_points_history[point].Freddi_g << "\n";
 
-                            //  pcout << "TCZ_res " << TCZ_res << "\n";
-                            //  pcout << "TCZ " << TCZ << "\n";
+                    //  pcout << "TCZ_res " << TCZ_res << "\n";
+                    //  pcout << "TCZ " << TCZ << "\n";
 
-                            //   pcout << "\n";
-                        }
+                    //   pcout << "\n";
+                }
 
                 for (unsigned int i = 0; i < n_dofs_face; ++i)
                 {
@@ -2159,7 +2175,7 @@ namespace Friction_adaptivity_everywhere
             if (par.geometry == "half_matrix")
                 f.open("half_matrix.msh");
             else if (par.geometry == "matrix")
-                f.open("matrix.msh");
+                f.open("matrix1.msh");
             else if (par.geometry == "hole")
                 f.open("hole.msh");
             gridin.read_msh(f);
@@ -2216,8 +2232,9 @@ namespace Friction_adaptivity_everywhere
 
         if (par.is_distorted)
         {
+            GridTools::transform(&grid_y_transform<dim>, triangulation);
 
-            GridTools::distort_random(0.1, triangulation, true, 2882);
+            // GridTools::distort_random(0.1, triangulation, true, 2882);
             // triangulation.refine_global(1);
             // GridTools::rotate(-M_PI/2, triangulation);
         }

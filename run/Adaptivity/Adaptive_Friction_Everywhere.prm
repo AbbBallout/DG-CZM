@@ -10,23 +10,23 @@ subsection main
 	subsection geometry
 		set geometry = reactangle       #reactangle|half_matrix|matrix|hole|ENF|EN_10
 		set initial_refinement= 4
-		set E1 = 1e+2
-		set nu1= 0.33
-		set E2 = 1e+2
-		set nu2= 0.33
-		set is_distorted = false
+		set E1 = 1e+3
+		set nu1= 0.3
+		set E2 = 1e+3
+		set nu2= 0.3
+		set is_distorted = true
 	end
 	
 	subsection CZM
 		set is_everywhere = false
-		set type    = intrinsic   #extrinsic|intrinsic
-		set friction_coff = 0.95
+		set type    = extrinsic   #extrinsic|intrinsic
+		set friction_coff = 0
 
 		### interface ####
-		set sig_ics = 0.1
-		set sig_icn = 0.1
-		set delta_ics = 1e-5
-		set delta_icn = 1e-5
+		set sig_ics = 0.5
+		set sig_icn = 0.5
+		set delta_ics = 1e-4
+		set delta_icn = 1e-4
 		set G_ics  =  2e-3
 		set G_icn  =  2e-3
 		
@@ -35,10 +35,10 @@ subsection main
 		set sig_cn = 0.1
 		set delta_cs = 1e-4
 		set delta_cn = 1e-4
-		set G_cs  =  1.25e-3
-		set G_cn  = 1.25e-3
+		set G_cs  =  1e-2
+		set G_cn  = 1e-2
 		
-		set penetration_penalty = 1e+4
+		set penetration_penalty = 1e+5
 	end
 	
 	subsection robustness
@@ -50,10 +50,10 @@ subsection main
 		####
 		set regularization1= 2.0
 		set regularization2= 0.1
+		set regularization3= 0
 
-			
 		####
-		set always_check_for_damage_and_unloading = true
+		set always_check_for_damage_and_unloading = false
 				
 		####
 		set ignore_non_convergence = false
@@ -66,7 +66,7 @@ subsection main
 	end
 	
 	subsection adaptivity
-	 	set with_adaptivity  = true
+	 	set with_adaptivity  = false
 	 	set threshold_stress_factor = 0.8    #less than one
 	 	set max_cell_level  = 6
 	end
@@ -76,8 +76,8 @@ subsection main
 		set cycles= 80
 		set max_nonlin_iter = 200
 		set error = 1e-8
-		set displacementx =  1e-3
-		set displacementy =  -0.5e-3
+		set displacementx =  0
+		set displacementy =  -1e-4
 		set unloading = 2699
 		set reloading = 3599
 		set output_directory = ./output1

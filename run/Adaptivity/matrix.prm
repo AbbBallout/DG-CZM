@@ -5,7 +5,7 @@ subsection main
 	set degree           = 1
 	set quadrature       = gauss       #gauss|lobatto|gauss-reduced
 	set symmetry         = 0
- 	set penalty_factor   = 5
+ 	set penalty_factor   = 10
 
 	subsection geometry
 		set geometry = matrix       #reactangle|half_matrix|matrix|hole|ENF|EN_10
@@ -50,7 +50,7 @@ subsection main
 		####
 		set regularization1=   1.0  # def 1.0 with friction 
 		set regularization2=   0.1  # def 0.1 with friction 
-		set regularization3=   200  # def 200 with matrix extrinsic
+		set regularization3=   200  # def 200 with matrix extrinsic k=1e+6, refine 0
 
 			
 		####
@@ -69,16 +69,16 @@ subsection main
 	subsection adaptivity
 	 	set with_adaptivity  = false
 	 	set threshold_stress_factor = 0.8    #less than one
-	 	set max_cell_level  = 1
+	 	set max_cell_level  = 2
 	end
 	
 	
 	subsection solver_control
-		set cycles= 200
+		set cycles= 350
 		set max_nonlin_iter = 200
 		set error = 1e-8
 		set displacementx =  0
-		set displacementy = 1e-4
+		set displacementy = 5e-5
 		set unloading = 2699
 		set reloading = 4599
 		set output_directory = ./output1

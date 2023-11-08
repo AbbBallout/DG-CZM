@@ -36,11 +36,11 @@ function plot_data(file_name, plot_1, plot_2, plot_3, max,in)
             linewidth=2.5,
             name=in)
 
-        plot!(x, y,
-            seriestype=:scatter,
-            color="black", markersize=:2,
-            showlegend=false
-        )
+        # plot!(x, y,
+        #     seriestype=:scatter,
+        #     color="black", markersize=:2,
+        #     showlegend=false
+        # )
     end
 
     if (plot_2)
@@ -68,17 +68,16 @@ function plot_data(file_name, plot_1, plot_2, plot_3, max,in)
 
 
 
-        plot!(abs.(ff[:, 5]), ff[:, 8],
-            #color="cyan"  , 
-            linewidth=1.5,
-            name="Mid-plane normal force vs normal jump")
+        # plot!(abs.(ff[:, 5]), ff[:, 8],
+        #     #color="cyan"  , 
+        #     linewidth=1.5,
+        #     name="Mid-plane normal force vs normal jump")
     end
 end
 
 
-plot_data("forces1", true, false, false ,0,"mat")
-#plot_data("forces2", true, false, false ,0,"refine 1 + extrinsic + penetration 1e+5 + factor 10  + Lobatto")
-#plot_data("forces3", true, false, false ,0,"refine 1 + extrinsic + penetration 1e+4 + factor 10  + Lobatto")
+plot_data("forces1", true, false, false ,0," dofs , k=1e+6, intrinsic")
+
 
 
 
@@ -100,8 +99,9 @@ S = interpolate(Nguyenx, Nguyeny, BSplineOrder(4))
 xlims!(0, 8.15e-3)
 plot!(Nguyenx -> S(Nguyenx),
     #  color="blue"  , 
-    markersize=:2,
-    seriestype=:scatter,
+    linewidth=2.5,
+    seriestype=:line,
+    linestyle=:dash,
     name="Nguyen V.P. 2014")
 xlims!(0,0.012)
 
