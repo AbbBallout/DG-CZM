@@ -19,7 +19,7 @@ subsection main
 	
 	subsection CZM
 		set is_everywhere = true
-		set type    = intrinsic   #extrinsic|intrinsic
+		set type    = extrinsic   #extrinsic|intrinsic
 		set friction_coff = 0
 
 		### interface ####
@@ -48,28 +48,24 @@ subsection main
 		set with_adaptive_relaxation = true
 
 		####
-		set regularization1=   1.0  # def 1.0 with friction 
-		set regularization2=   0.1  # def 0.1 with friction 
-		set regularization3=   200  # def 200 with matrix extrinsic k=1e+6, refine 0
+		set jacobian_regularization  =  2.0  
 
-			
 		####
 		set always_check_for_damage_and_unloading = false
 				
 		####
-		set ignore_non_convergence = false
-				
+		set update_damage_once = false     ### update damage once for the first few iters    
+		set max_external_iterations = 0   ### Allowed EXTRA external iters 
+		set damage_error          = 1e-5
+
 		####
-		set update_damage_once = false
-		set max_external_iterations = 0  	# set to 0 to do non 
-		set external_iterations_error = 1e-6
-		set damage_error          = 1e-6
+		set ignore_non_convergence = false
 	end
 	
 	subsection adaptivity
 	 	set with_adaptivity  = false
 	 	set threshold_stress_factor = 0.8    #less than one
-	 	set max_cell_level  = 2
+	 	set max_cell_level  = 1
 	end
 	
 	
@@ -78,11 +74,11 @@ subsection main
 		set max_nonlin_iter = 200
 		set error = 1e-8
 		set displacementx =  0
-		set displacementy = 5e-5
+		set displacementy = 10e-5
 		set unloading = 2699
 		set reloading = 4599
-		set output_directory = ./output1
-		set file_name = forces1
+		set output_directory = ./outputmatrix
+		set file_name = forces3.2
 		set output_frequency = 1
 	end	
 end

@@ -87,12 +87,12 @@ namespace Friction_adaptivity_everywhere
 
     double heaviside(double x)
     {
-        return (x < 0) ? 0.0 : 1.0;
+        return (x < 0.0) ? 0.0 : 1.0;
     }
 
     double sign(double x)
     {
-        return (x < 0) ? -1.0 : 1.0;
+        return (x < 0.0) ? -1.0 : 1.0;
     }
 
     template <int dim>
@@ -154,11 +154,10 @@ namespace Friction_adaptivity_everywhere
                 add_parameter("with_adaptive_relaxation", with_adaptive_relaxation, " ", this->prm, Patterns::Bool());
                 add_parameter("max_external_iterations", max_external_iterations, " ", this->prm, Patterns::Integer());
                 add_parameter("damage_error", damage_error, " ", this->prm, Patterns::Double());
-                add_parameter("external_iterations_error", external_iterations_error, " ", this->prm, Patterns::Double());
                 add_parameter("ignore_non_convergence", ignore_non_convergence, " ", this->prm, Patterns::Bool());
-                add_parameter("regularization1", regularization1, " ", this->prm, Patterns::Double());
-                add_parameter("regularization2", regularization2, " ", this->prm, Patterns::Double());
-                add_parameter("regularization3", regularization3, " ", this->prm, Patterns::Double());
+                add_parameter("jacobian_reg1", jacobian_reg1, " ", this->prm, Patterns::Double());
+                add_parameter("jacobian_set", jacobian_set, " ", this->prm, Patterns::Double());
+                add_parameter("jacobian_reg2", jacobian_reg2, " ", this->prm, Patterns::Double());
             }
             leave_subsection();
 
@@ -192,8 +191,8 @@ namespace Friction_adaptivity_everywhere
         double testing_F = 0, E1 = 0, E2 = 0, nu1 = 0, nu2 = 0, penalty_factor = 0, error = 0, displacementx = 0, displacementy = 0,
                sig_ics = 0, delta_ics = 0, k_ius = 0, sig_icn = 0, G_ics = 0, delta_icn = 0, k_iun = 0, G_icn = 0,
                sig_cs = 0, delta_cs = 0, k_us = 0, sig_cn = 0, G_cs = 0, delta_cn = 0, k_un = 0, G_cn = 0,
-               CZM_penalty_factor = 0, friction_coff = 0, threshold_stress_factor = 0, damage_error = 0, external_iterations_error = 0,
-               newton_relaxation = 0, penetration_penalty = 0, regularization1 = 0, regularization2 = 0, regularization3 = 0;
+               CZM_penalty_factor = 0, friction_coff = 0, threshold_stress_factor = 0, damage_error = 0,
+               newton_relaxation = 0, penetration_penalty = 0, jacobian_reg1 = 0, jacobian_reg2 = 0, jacobian_set = 0;
         std::string quadrature = "gauss", type = "extrinsic", geometry = "reactangle", output_directory = "output", file_name = "forces";
         bool is_distorted = 0, with_adaptivity = 0, is_everywhere = 0, update_damage_once = 0,
              always_check_for_damage_and_unloading = 0, ignore_non_convergence = 0, with_adaptive_relaxation = 0;
@@ -368,18 +367,18 @@ namespace Friction_adaptivity_everywhere
     template <int dim>
     struct PointHistory
     {
-        bool is_damaged;
-        bool is_fully_damaged;
-        bool is_reunload;
+        bool is_damaged;       // the alpha
+        bool is_fully_damaged; // if fully damaged
+        bool is_reunload;      // if you are in a loading or reloading state
 
-        double max_damage;
-        double Freddi_g;
+        double max_damage; // for unlaoding
+        double Freddi_g;   // for friction
 
-        double damage;
-        double damage_init;
+        Tensor<1, dim> traction_init; // for shifting
+        Tensor<1, dim> law_g;         // to calculte shift for  unlaoding
 
-        Tensor<1, dim> traction_init;
-        Tensor<1, dim> law_g;
+        double damage;      // these two are for the
+        double damage_init; // update damage once. Rarely used
     };
 
     template <int dim>
@@ -391,7 +390,7 @@ namespace Friction_adaptivity_everywhere
 
     private:
         void setup_system(const bool initial_step);
-        void assemble_system(const unsigned int cycle, const unsigned int non_lin);
+        void assemble_system(const unsigned int cycle, const unsigned int non_lin, const double error, const bool doing_external_iterations, const unsigned int external_iterations);
         void solve(double prev_error);
         double calculate_damage_error();
         void refine_mesh();
@@ -549,7 +548,7 @@ namespace Friction_adaptivity_everywhere
         pcout << "dofs = " << dof_handler.n_dofs() << std::endl;
     }
     template <int dim>
-    void Friction_adaptivity_everywhere<dim>::assemble_system(const unsigned int cycle, const unsigned int non_lin)
+    void Friction_adaptivity_everywhere<dim>::assemble_system(const unsigned int cycle, const unsigned int non_lin, const double error, const bool doing_external_iterations, const unsigned int external_iterations)
     {
         TimerOutput::Scope t(computing_timer, "Assemble");
 
@@ -620,8 +619,7 @@ namespace Friction_adaptivity_everywhere
 
             double penalty = (par.penalty_factor) * elasticity / (cell->diameter());
 
-            if (par.geometry == "reactangle" || par.geometry == "matrix" || par.geometry == "hole")
-            {
+            if (par.geometry == "reactangle" || par.geometry == "hole")
                 if ((cell->face(face_no)->boundary_id() == 2) || cell->face(face_no)->boundary_id() == 3)
                     for (unsigned int point = 0; point < n_q_points; ++point)
                     {
@@ -665,6 +663,102 @@ namespace Friction_adaptivity_everywhere
 
                                 + penalty *
                                       fe_fv[displacements].value(i, point) * ((cell->face(face_no)->boundary_id() - 2) * disp) *
+                                      JxW[point]; // dx
+                        }
+                    }
+
+            if (par.geometry == "matrix")
+            {
+                if ((cell->face(face_no)->boundary_id() == 2) || cell->face(face_no)->boundary_id() == 3)
+                    for (unsigned int point = 0; point < n_q_points; ++point)
+                    {
+                        Tensor<2, dim> strain = 0.5 * (gradu[point] + transpose(gradu[point]));
+
+                        for (unsigned int i = 0; i < n_facet_dofs; ++i)
+                        {
+                            Tensor<2, dim> straini = 0.5 * (fe_fv[displacements].gradient(i, point) + transpose(fe_fv[displacements].gradient(i, point)));
+
+                            for (unsigned int j = 0; j < n_facet_dofs; ++j)
+                            {
+                                Tensor<2, dim> strainj = 0.5 * (fe_fv[displacements].gradient(j, point) + transpose(fe_fv[displacements].gradient(j, point)));
+
+                                copy_data.cell_matrix(i, j) +=
+                                    ((-fe_fv[displacements].value(i, point) * normals[point]) *
+                                         (((lambda * trace(strainj) * Identity + 2 * mu * strainj) * normals[point]) * normals[point])
+
+                                     + par.symmetry *
+                                           (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
+                                           (fe_fv[displacements].value(j, point) * normals[point]) // Symetry term
+
+                                     + penalty * (fe_fv[displacements].value(i, point) * normals[point]) * (fe_fv[displacements].value(j, point) * normals[point])) *
+                                    JxW[point];
+                            }
+
+                            copy_data.cell_rhs(i) +=
+
+                                -(
+                                    -(fe_fv[displacements].value(i, point) * normals[point]) *
+                                        (((lambda * trace(strain) * Identity + 2 * mu * strain) * normals[point]) * normals[point])
+
+                                    + par.symmetry *
+                                          (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
+                                          (old_solution_values[point] * normals[point]) // Symetry term
+
+                                    + penalty * (fe_fv[displacements].value(i, point) * normals[point]) * (old_solution_values[point] * normals[point])) *
+                                    JxW[point]
+
+                                + par.symmetry * (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
+                                      (((cell->face(face_no)->boundary_id() - 2) * disp * normals[point])) * JxW[point] // Symetry term
+
+                                + penalty *
+                                      fe_fv[displacements].value(i, point) * normals[point] * (((cell->face(face_no)->boundary_id() - 2) * disp * normals[point])) *
+                                      JxW[point]; // dx
+                        }
+                    }
+
+                if (cell->face(face_no)->boundary_id() == 2 && std::abs(cell->center()[0] - 0.5) < 0.025)
+                    for (unsigned int point = 0; point < n_q_points; ++point)
+                    {
+                        Tensor<2, dim> strain = 0.5 * (gradu[point] + transpose(gradu[point]));
+
+                        for (unsigned int i = 0; i < n_facet_dofs; ++i)
+                        {
+                            Tensor<2, dim> strain_i = 0.5 * (fe_fv[displacements].gradient(i, point) + transpose(fe_fv[displacements].gradient(i, point)));
+
+                            for (unsigned int j = 0; j < n_facet_dofs; ++j)
+                            {
+                                Tensor<2, dim> strain_j = 0.5 * (fe_fv[displacements].gradient(j, point) + transpose(fe_fv[displacements].gradient(j, point)));
+
+                                copy_data.cell_matrix(i, j) +=
+                                    (-fe_fv[displacements].value(i, point) *
+                                         (lambda * trace(strain_j) * Identity + 2 * mu * strain_j) * normals[point]
+
+                                     + par.symmetry *
+                                           (lambda * trace(strain_i) * Identity + 2 * mu * strain_i) * normals[point] *
+                                           fe_fv[displacements].value(j, point) // Symetry term
+
+                                     + penalty * fe_fv[displacements].value(i, point) * fe_fv[displacements].value(j, point)) *
+                                    JxW[point];
+                            }
+
+                            copy_data.cell_rhs(i) +=
+
+                                -(
+                                    -fe_fv[displacements].value(i, point) *
+                                        (lambda * trace(strain) * Identity + 2 * mu * strain) * normals[point]
+
+                                    + par.symmetry *
+                                          (lambda * trace(strain_i) * Identity + 2 * mu * strain_i) * normals[point] *
+                                          old_solution_values[point] // Symetry term
+
+                                    + penalty * fe_fv[displacements].value(i, point) * old_solution_values[point]) *
+                                    JxW[point]
+
+                                + par.symmetry * (lambda * trace(strain_i) * Identity + 2 * mu * strain_i) * normals[point] *
+                                      ((0.0) * disp) * JxW[point] // Symetry term
+
+                                + penalty *
+                                      fe_fv[displacements].value(i, point) * (0.0) * disp *
                                       JxW[point]; // dx
                         }
                     }
@@ -1139,7 +1233,7 @@ namespace Friction_adaptivity_everywhere
                 // for robustness
                 if (non_lin <= 1 && coff > 0 + 1e-6)
                     coff = 10;
-
+                
                 if (coff > 1e-6)
                     law_p[0] = heaviside(law_g[1]) * law_g[0] + heaviside(-law_g[1]) * quadrature_points_history[point].Freddi_g;
                 else
@@ -1163,11 +1257,11 @@ namespace Friction_adaptivity_everywhere
 
                 delta_ec = std::pow(slope[0][0] * (law_g[0] / law_g.norm()) / sig_c[0], 2);
                 delta_ec += std::pow(slope[1][1] * (law_g[1] / law_g.norm()) / sig_c[1], 2);
-                delta_ec = 1 / sqrt(delta_ec);
+                delta_ec = 1.0 / sqrt(delta_ec);
 
                 delta_eu = slope[0][0] * delta_ec * std::pow(law_g[0] / law_g.norm(), 2) / (2 * G_c[0]);
                 delta_eu += slope[1][1] * delta_ec * std::pow(law_g[1] / law_g.norm(), 2) / (2 * G_c[1]);
-                delta_eu = 1 / delta_eu;
+                delta_eu = 1.0 / (delta_eu);
 
                 damage = delta_eu * (law_g.norm() - delta_ec) / (law_g.norm() * (delta_eu - delta_ec));
 
@@ -1180,8 +1274,9 @@ namespace Friction_adaptivity_everywhere
                 if (non_lin == 1)
                     quadrature_points_history[point].damage_init = damage;
 
-                if (par.update_damage_once == true)
+                if (par.update_damage_once == true && doing_external_iterations == true)
                     damage = quadrature_points_history[point].damage_init;
+
                 ////// #######  CONTROLS ######## ///////
 
                 if ((non_lin == 1 && par.always_check_for_damage_and_unloading == false) || par.always_check_for_damage_and_unloading == true)
@@ -1196,11 +1291,11 @@ namespace Friction_adaptivity_everywhere
                     quadrature_points_history[point].traction_init = traction_eff;
 
                 if (non_lin == 1)
-                    quadrature_points_history[point].max_damage = std::max(damage, quadrature_points_history[point].max_damage);
+                    if (external_iterations == 0)
+                        quadrature_points_history[point].max_damage = std::max(damage, quadrature_points_history[point].max_damage);
 
                 // check for unloading and reloading
-                // if (non_lin == 1)
-                if ((non_lin == 1 && par.always_check_for_damage_and_unloading == false) || par.always_check_for_damage_and_unloading == true)
+                if ((non_lin == 1 && par.always_check_for_damage_and_unloading == false && doing_external_iterations == false) || par.always_check_for_damage_and_unloading == true)
                     if (quadrature_points_history[point].is_fully_damaged == false)
                     {
                         if ((quadrature_points_history[point].max_damage - damage) > 1e-8)
@@ -1303,7 +1398,7 @@ namespace Friction_adaptivity_everywhere
                     TCZ[1][1] = 1.0;
 
                     // dTCZ/Ds * dDs/du
-                    if (par.update_damage_once == false || non_lin == 1)
+                    if (par.update_damage_once == false || (par.update_damage_once == true && doing_external_iterations == false) || non_lin == 1)
                         if (damage > 0 && quadrature_points_history[point].is_fully_damaged == false)
                         {
                             Tensor<1, dim> ddamage_du;
@@ -1366,16 +1461,22 @@ namespace Friction_adaptivity_everywhere
 
                 // Regularize
                 if (law_g[1] < 0)
-                    if (damage > 0)
-                    {
-                        TCZ[0][0] += par.regularization1;
+                {
+                     if (quadrature_points_history[point].is_fully_damaged == false)
+                         if (quadrature_points_history[point].max_damage < 1 - 1e-12 && damage > 1 - 2 * (delta_c[0] + delta_c[1]))
+                            TCZ[0][0] += par.jacobian_reg1;
 
-                        if (law_g[1] > -1e-12)
-                            TCZ[1][0] += par.regularization2;
+                    if (law_g[1] > -1e-12)
+                        if (quadrature_points_history[point].is_reunload == false)
+                            TCZ[1][0] = par.jacobian_set;
+                }
 
-                        TCZ[0][0] += par.regularization3;
-                        TCZ[1][0] += par.regularization3;
-                    }
+                if (quadrature_points_history[point].is_fully_damaged == false)
+                    if (quadrature_points_history[point].is_reunload == false)
+                        for (unsigned int i = 0; i < dim; ++i)
+                            for (unsigned int j = 0; j < dim; ++j)
+                                if (std::abs(TCZ[i][j]) < 1e-6)
+                                    TCZ[i][j] = par.jacobian_reg2;
 
                 if (par.is_everywhere == false)
                     if (cell->material_id() == ncell->material_id())
@@ -1383,6 +1484,7 @@ namespace Friction_adaptivity_everywhere
                         quadrature_points_history[point].is_damaged = false;
                         quadrature_points_history[point].max_damage = 0;
                         quadrature_points_history[point].damage_init = 0;
+                        quadrature_points_history[point].damage = 0;
                     }
 
                 if (par.geometry == "matrix")
@@ -1544,8 +1646,13 @@ namespace Friction_adaptivity_everywhere
 
             if (system_rhs.l2_norm() > prev_error)
                 newton_relaxation = newton_relaxation * 0.75;
-            else if (system_rhs.l2_norm() < 100)
-                newton_relaxation = newton_relaxation * 1.2;
+            else if (system_rhs.l2_norm() < 1000)
+            {
+                if (newton_relaxation > 0.4)
+                    newton_relaxation = newton_relaxation * 1.2;
+                else
+                    newton_relaxation = newton_relaxation * 1.1;
+            }
 
             if (newton_relaxation < 0.05)
                 newton_relaxation = 0.05;
@@ -2259,12 +2366,12 @@ namespace Friction_adaptivity_everywhere
             if (cycle < par.unloading || cycle > par.reloading)
             {
                 disp[0] += par.displacementx;
-                disp[1] += par.displacementy;
+                disp[1] = par.displacementy;
             }
             else
             {
                 disp[0] -= par.displacementx;
-                disp[1] -= par.displacementy;
+                disp[1] = par.displacementy;
             }
 
             pcout << " ####### cycle = " << cycle << " and displacement = " << disp[1] << " ###### \n";
@@ -2293,26 +2400,22 @@ namespace Friction_adaptivity_everywhere
                     setup_system(false);
 
                 max_nonlin_output = std::max(max_nonlin_output, non_lin);
-                max_external_iterations_output = std::max(max_external_iterations_output, external_iterations);
 
                 if (max_nonlin_output == non_lin)
                     max_non_lin_at_cycle = cycle;
-
-                if (max_external_iterations_output == external_iterations)
-                    max_external_iterations_at_cycle = cycle;
 
                 if (par.ignore_non_convergence == false)
                     if (max_nonlin_output == max_nonlin_iter - 1)
                         throw std::runtime_error("max non_lin iterations reached b4 convergence");
 
                 non_lin++;
-                assemble_system(cycle, non_lin);
+                assemble_system(cycle, non_lin, error, doing_external_iterations, external_iterations);
                 error = system_rhs.l2_norm();
 
                 pcout << "  system_rhs l2_norm " << system_rhs.l2_norm() << std::endl;
                 pcout << "  damage_error " << calculate_damage_error() << "\n";
 
-                if ((error > par.error && !doing_external_iterations) || (error > par.external_iterations_error && doing_external_iterations))
+                if (error > par.error)
                 {
                     pcout << "  external_iterations = " << external_iterations << std::endl;
                     pcout << "  non lin = " << non_lin << std::endl;
@@ -2324,19 +2427,32 @@ namespace Friction_adaptivity_everywhere
                 {
                     if (calculate_damage_error() < par.damage_error)
                     {
-                        doing_external_iterations = false;
+                        external_iterations = max_external_iterations;
+                        non_lin = 0;
                     }
                     else
                     {
                         external_iterations++;
+
+                        max_external_iterations_output = std::max(max_external_iterations_output, external_iterations);
+
+                        if (max_external_iterations_output == external_iterations)
+                            max_external_iterations_at_cycle = cycle;
+
                         non_lin = 0;
                     }
                 }
                 pcout << "max external_iterationses " << max_external_iterations_output << " at_cycle " << max_external_iterations_at_cycle << "\n";
                 pcout << "max nonlin iterations " << max_nonlin_output << "  at_cycle " << max_non_lin_at_cycle << "\n------- \n ";
 
-                if (error > 1e+30)
+                if (std::isnan(error))
+                {
+                    throw std::runtime_error("Error is NaN");
+                }
+                else if (error > 1e+20)
+                {
                     throw std::runtime_error("Divergence in the solution");
+                }
 
                 if (cycle % par.output_frequency == 0 || cycle == 0)
                 {
