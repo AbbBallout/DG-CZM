@@ -58,7 +58,8 @@
 
 ////////////// WARNING ////////////////////
 //!!!!!!!!!!!!!!!!!!!!
-//////// Don't run in paralle with mesh adaptivity //////////
+//////// Don't run in paralle with mesh adaptivity (Maybe) //////////
+///////  Writing to file in parallel in PPV_file isn't safe
 ///////////////////////////////////////
 //////////////////////////////////////
 
@@ -143,6 +144,7 @@ namespace Friction_adaptivity_everywhere
                 add_parameter("G_cn", G_cn, " ", this->prm, Patterns::Double());
 
                 add_parameter("friction_coff", friction_coff, " ", this->prm, Patterns::Double());
+                add_parameter("viscosity", viscosity, " ", this->prm, Patterns::Double());
             }
             leave_subsection();
 
@@ -156,8 +158,8 @@ namespace Friction_adaptivity_everywhere
                 add_parameter("damage_error", damage_error, " ", this->prm, Patterns::Double());
                 add_parameter("ignore_non_convergence", ignore_non_convergence, " ", this->prm, Patterns::Bool());
                 add_parameter("jacobian_reg1", jacobian_reg1, " ", this->prm, Patterns::Double());
-                add_parameter("jacobian_set", jacobian_set, " ", this->prm, Patterns::Double());
                 add_parameter("jacobian_reg2", jacobian_reg2, " ", this->prm, Patterns::Double());
+                add_parameter("jacobian_reg3", jacobian_reg3, " ", this->prm, Patterns::Double());
             }
             leave_subsection();
 
@@ -192,7 +194,7 @@ namespace Friction_adaptivity_everywhere
                sig_ics = 0, delta_ics = 0, k_ius = 0, sig_icn = 0, G_ics = 0, delta_icn = 0, k_iun = 0, G_icn = 0,
                sig_cs = 0, delta_cs = 0, k_us = 0, sig_cn = 0, G_cs = 0, delta_cn = 0, k_un = 0, G_cn = 0,
                CZM_penalty_factor = 0, friction_coff = 0, threshold_stress_factor = 0, damage_error = 0,
-               newton_relaxation = 0, penetration_penalty = 0, jacobian_reg1 = 0, jacobian_reg2 = 0, jacobian_set = 0;
+               newton_relaxation = 0, penetration_penalty = 0, jacobian_reg1 = 0, jacobian_reg2 = 0, jacobian_reg3 = 0, viscosity = 0;
         std::string quadrature = "gauss", type = "extrinsic", geometry = "reactangle", output_directory = "output", file_name = "forces";
         bool is_distorted = 0, with_adaptivity = 0, is_everywhere = 0, update_damage_once = 0,
              always_check_for_damage_and_unloading = 0, ignore_non_convergence = 0, with_adaptive_relaxation = 0;
@@ -376,9 +378,12 @@ namespace Friction_adaptivity_everywhere
 
         Tensor<1, dim> traction_init; // for shifting
         Tensor<1, dim> law_g;         // to calculte shift for  unlaoding
+        Tensor<1, dim> old_law_g;     // for viscous regularization update is done in reaction_and_traction
 
         double damage;      // these two are for the
-        double damage_init; // update damage once. Rarely used
+        double damage_init; // update damage once.
+
+        Tensor<1, dim> q_cordinates; // quadrature point cordniate for output
     };
 
     template <int dim>
@@ -395,6 +400,7 @@ namespace Friction_adaptivity_everywhere
         double calculate_damage_error();
         void refine_mesh();
         void output_results(const unsigned int cycle) const;
+        void q_point_PPV(const unsigned int cycle) const;
 
         void reaction_and_traction(const types::boundary_id &boundary_id, Tensor<1, dim> &reaction_stress, Tensor<1, dim> &interface_jump, Tensor<1, dim> &interface_stress);
 
@@ -1196,9 +1202,13 @@ namespace Friction_adaptivity_everywhere
             Tensor<1, dim> law_g, law_p, law_q;
             Tensor<1, dim> TCZ_res;
             Tensor<2, dim> TCZ;
+            Tensor<1, dim> viscosity_res;
+            Tensor<2, dim> viscosity_jac;
 
             for (unsigned int point = 0; point < n_q_points; ++point)
             {
+                quadrature_points_history[point].q_cordinates = q_points[point];
+
                 Tensor<2, dim> strain1 = 0.5 * (grads_1[point] + transpose(grads_1[point]));
                 Tensor<2, dim> strain2 = 0.5 * (grads_2[point] + transpose(grads_2[point]));
                 Tensor<2, dim> stress1 = (lambda * trace(strain1) * Identity + 2 * mu * strain1);
@@ -1233,7 +1243,7 @@ namespace Friction_adaptivity_everywhere
                 // for robustness
                 if (non_lin <= 1 && coff > 0 + 1e-6)
                     coff = 10;
-                
+
                 if (coff > 1e-6)
                     law_p[0] = heaviside(law_g[1]) * law_g[0] + heaviside(-law_g[1]) * quadrature_points_history[point].Freddi_g;
                 else
@@ -1336,6 +1346,10 @@ namespace Friction_adaptivity_everywhere
 
                 //  END CONTROLS ### ///////////////
 
+                viscosity_res = par.viscosity * (law_g - quadrature_points_history[point].old_law_g) / (std::sqrt(std::pow(par.displacementx, 2) + std::pow(par.displacementy, 2)));
+                viscosity_jac[0][0] = par.viscosity / (std::sqrt(std::pow(par.displacementx, 2) + std::pow(par.displacementy, 2)));
+                viscosity_jac[1][1] = par.viscosity / (std::sqrt(std::pow(par.displacementx, 2) + std::pow(par.displacementy, 2)));
+
                 // TCZ && TCZ_res calculation
                 if (quadrature_points_history[point].is_reunload)
                 {
@@ -1386,6 +1400,9 @@ namespace Friction_adaptivity_everywhere
 
                     TCZ_res[1] += heaviside(-law_g_unshifted[1]) * par.penetration_penalty * law_g_unshifted[1];
                     TCZ[1][1] += heaviside(-law_g_unshifted[1]) * par.penetration_penalty;
+
+                    TCZ_res += viscosity_res;
+                    TCZ += viscosity_jac;
                 }
                 else
                 {
@@ -1457,26 +1474,21 @@ namespace Friction_adaptivity_everywhere
 
                     TCZ_res[1] += heaviside(-law_g_unshifted[1]) * par.penetration_penalty * law_g_unshifted[1];
                     TCZ[1][1] += heaviside(-law_g_unshifted[1]) * par.penetration_penalty;
+
+                    TCZ_res += viscosity_res;
+                    TCZ += viscosity_jac;
                 }
 
                 // Regularize
                 if (law_g[1] < 0)
                 {
-                     if (quadrature_points_history[point].is_fully_damaged == false)
-                         if (quadrature_points_history[point].max_damage < 1 - 1e-12 && damage > 1 - 2 * (delta_c[0] + delta_c[1]))
-                            TCZ[0][0] += par.jacobian_reg1;
+                    TCZ[0][0] += par.jacobian_reg1;
 
                     if (law_g[1] > -1e-12)
-                        if (quadrature_points_history[point].is_reunload == false)
-                            TCZ[1][0] = par.jacobian_set;
+                        TCZ[1][0] += par.jacobian_reg2;
                 }
 
-                if (quadrature_points_history[point].is_fully_damaged == false)
-                    if (quadrature_points_history[point].is_reunload == false)
-                        for (unsigned int i = 0; i < dim; ++i)
-                            for (unsigned int j = 0; j < dim; ++j)
-                                if (std::abs(TCZ[i][j]) < 1e-6)
-                                    TCZ[i][j] = par.jacobian_reg2;
+                TCZ[0][0] += par.jacobian_reg3 / (std::sqrt(std::pow(par.displacementx, 2) + std::pow(par.displacementy, 2)));
 
                 if (par.is_everywhere == false)
                     if (cell->material_id() == ncell->material_id())
@@ -2122,6 +2134,19 @@ namespace Friction_adaptivity_everywhere
                 subdomain(i) = triangulation.locally_owned_subdomain();
             data_out.add_data_vector(subdomain, "subdomain");
 
+            Vector<double> damage(triangulation.n_active_cells());
+
+            for (const auto &cell : dof_handler.active_cell_iterators())
+                if (cell->is_locally_owned())
+                    for (unsigned int face_number = 0; face_number < GeometryInfo<2>::faces_per_cell; ++face_number)
+                    {
+
+                        PointHistory<dim> *quadrature_points_history = reinterpret_cast<PointHistory<dim> *>(cell->face(face_number)->user_pointer());
+                        for (unsigned int q_point = 0; q_point < face_quadrature->size(); ++q_point)
+                            damage(cell->active_cell_index()) = std::max(damage(cell->active_cell_index()), quadrature_points_history[q_point].damage);
+                    }
+            data_out.add_data_vector(damage, "damage");
+
             data_out.build_patches();
 
             data_out.write_vtu_with_pvtu_record(par.output_directory + "/", "solution", cycle, mpi_communicator, 3, 0);
@@ -2214,9 +2239,15 @@ namespace Friction_adaptivity_everywhere
             std::vector<Tensor<2, dim>> grads_2(n_q_points);
             fe_fv2[displacements].get_function_gradients(ghosted_solution, grads_2);
 
+            PointHistory<dim> *quadrature_points_history = reinterpret_cast<PointHistory<dim> *>(cell->face(f)->user_pointer());
+
             if (cell->material_id() != ncell->material_id())
                 for (unsigned int point = 0; point < n_q_points; ++point)
                 {
+
+                    /// update old history data
+                    quadrature_points_history[point].old_law_g = quadrature_points_history[point].law_g;
+
                     counter++;
 
                     Tensor<2, dim> strain1 = 0.5 * (grads_1[point] + transpose(grads_1[point]));
@@ -2252,6 +2283,63 @@ namespace Friction_adaptivity_everywhere
         interface_jump = Utilities::MPI::sum(interface_jump, mpi_communicator);
         interface_stress = Utilities::MPI::sum(interface_stress, mpi_communicator);
         interface_jump = interface_jump / counter;
+    }
+
+    template <int dim>
+    void Friction_adaptivity_everywhere<dim>::q_point_PPV(const unsigned int cycle) const
+    {
+        const auto face_worker = [&](const auto &cell,
+                                     const unsigned int &f,
+                                     const unsigned int &sf,
+                                     const auto &ncell,
+                                     const unsigned int &nf,
+                                     const unsigned int &nsf,
+                                     ScratchData<dim> &scratch_data,
+                                     CopyData &copy_data)
+        {
+            FEInterfaceValues<dim> &fe_iv = scratch_data.fe_interface_values;
+            fe_iv.reinit(cell, f, sf, ncell, nf, nsf);
+
+            const auto &q_points = fe_iv.get_quadrature_points();
+            const unsigned int n_q_points = q_points.size();
+
+            PointHistory<dim> *quadrature_points_history = reinterpret_cast<PointHistory<dim> *>(cell->face(f)->user_pointer());
+            for (unsigned int point = 0; point < n_q_points; ++point)
+            {
+                std::ofstream q_point;
+
+                q_point.open(par.output_directory + "/cycle_" + std::to_string(cycle) + ".txt", std::ios_base::app);
+                q_point << quadrature_points_history[point].q_cordinates[0] << "," << quadrature_points_history[point].q_cordinates[1] << ","
+                        << quadrature_points_history[point].damage
+                        << "\n";
+                q_point.close();
+            }
+        };
+
+        if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
+        {
+            std::ofstream q_point;
+
+            q_point.open(par.output_directory + "/cycle_" + std::to_string(cycle) + ".txt");
+            q_point << "x"
+                    << ","
+                    << "y"
+                    << ","
+                    << "damage"
+                    << "\n";
+            q_point.close();
+            
+        }
+
+        MeshWorker::mesh_loop(dof_handler.begin_active(),
+                              dof_handler.end(),
+                              nullptr,
+                              nullptr,
+                              ScratchData<dim>(mapping, fe, quadrature, *face_quadrature),
+                              CopyData(),
+                              MeshWorker::assemble_own_interior_faces_once | MeshWorker::assemble_ghost_faces_once,
+                              nullptr,
+                              face_worker);
     }
 
     template <int dim>
@@ -2366,12 +2454,12 @@ namespace Friction_adaptivity_everywhere
             if (cycle < par.unloading || cycle > par.reloading)
             {
                 disp[0] += par.displacementx;
-                disp[1] = par.displacementy;
+                disp[1] += par.displacementy;
             }
             else
             {
                 disp[0] -= par.displacementx;
-                disp[1] = par.displacementy;
+                disp[1] -= par.displacementy;
             }
 
             pcout << " ####### cycle = " << cycle << " and displacement = " << disp[1] << " ###### \n";
@@ -2458,6 +2546,7 @@ namespace Friction_adaptivity_everywhere
                 {
                     TimerOutput::Scope t(computing_timer, "output");
                     output_results(cycle);
+                    q_point_PPV(cycle);
                 }
             }
 

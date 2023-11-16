@@ -20,7 +20,7 @@ subsection main
 	subsection CZM
 		set is_everywhere = false
 		set type    = intrinsic   #extrinsic|intrinsic
-		set friction_coff = 0.75
+		set friction_coff = 0.5
 
 		### interface ####
 		set sig_ics = 0.1
@@ -39,18 +39,19 @@ subsection main
 		set G_cn  = 1e-2
 		
 		set penetration_penalty = 1e+5
+		set viscosity = 0.0
 	end
 	
 	subsection robustness
-	
 		####
 		set newton_relaxation = 1.0
 		set with_adaptive_relaxation = true
 
 		####
-		set jacobian_reg1  = 2.0    # sth like 2.0 
-		set jacobian_set  =  0.1    # sth like 0.1 
-		set jacobian_reg2  = 1.0    # sth like 1.0
+		set jacobian_reg1  = 1.0    # sth like 1.0
+		set jacobian_reg2  = 0.1    # sth like 0.1 
+		set jacobian_reg3  = 0.0    # sth like 1.0
+ 
 
 		####
 		set always_check_for_damage_and_unloading = true
@@ -65,20 +66,20 @@ subsection main
 	end
 	
 	subsection adaptivity
-	 	set with_adaptivity  = true
+	 	set with_adaptivity  = false
 	 	set threshold_stress_factor = 0.8    #less than one
 	 	set max_cell_level  = 6
 	end
 	
 	
 	subsection solver_control
-		set cycles= 100
+		set cycles= 80
 		set max_nonlin_iter = 200
 		set error = 1e-8
 		set displacementx =  1e-3
-		set displacementy =  0.0
-		set unloading = 3699
-		set reloading = 4599
+		set displacementy =  -0.5e-3
+		set unloading = 36
+		set reloading = 45
 		set output_directory = ./output
 		set file_name = forces1
 		set output_frequency = 1
