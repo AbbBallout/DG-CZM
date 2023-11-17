@@ -76,6 +76,7 @@ function plot_data(file_name, plot_1, plot_2, plot_3, max, in)
 end
 
 
+plot_data("forces1", true, false, false, 0, " viscosity 0")
 
 
 

@@ -623,7 +623,7 @@ namespace Friction_adaptivity_everywhere
             double elasticity = 0, poisson = 0, lambda = 0, mu = 0;
             ENLM(cell->material_id(), elasticity, poisson, lambda, mu);
 
-            double penalty = (par.penalty_factor) * elasticity / (cell->diameter());
+            double penalty = (par.degree * par.degree) * (par.penalty_factor) * elasticity / (cell->diameter());
 
             if (par.geometry == "reactangle" || par.geometry == "hole")
                 if ((cell->face(face_no)->boundary_id() == 2) || cell->face(face_no)->boundary_id() == 3)
@@ -1171,7 +1171,7 @@ namespace Friction_adaptivity_everywhere
 
             PointHistory<dim> *quadrature_points_history = reinterpret_cast<PointHistory<dim> *>(cell->face(f)->user_pointer());
 
-            double penalty = (par.penalty_factor) * (elasticity / 2 + nelasticity / 2) / std::min(cell->diameter(), ncell->diameter());
+            double penalty = (par.degree * par.degree) * (par.penalty_factor) * (elasticity / 2 + nelasticity / 2) / std::min(cell->diameter(), ncell->diameter());
             Tensor<1, dim> sig_c, delta_c, G_c;
             if (cell->material_id() == ncell->material_id())
             {
@@ -1239,6 +1239,9 @@ namespace Friction_adaptivity_everywhere
                 Tensor<1, dim> law_g_unshifted = law_g;
                 law_g += shift;
 
+                if (non_lin == 1)
+                    quadrature_points_history[point].old_law_g = law_g;
+
                 double coff = par.friction_coff;
                 // for robustness
                 if (non_lin <= 1 && coff > 0 + 1e-6)
@@ -1291,7 +1294,7 @@ namespace Friction_adaptivity_everywhere
 
                 if ((non_lin == 1 && par.always_check_for_damage_and_unloading == false) || par.always_check_for_damage_and_unloading == true)
                     if (par.type == "extrinsic")
-                        if (std::pow(traction_eff[0] / sig_c[0], 2) + std::pow(traction_eff[1] / sig_c[1], 2) > 1 || damage > 0 + 1e-6)
+                        if (std::pow(traction_eff[0] / sig_c[0], 2) + std::pow(traction_eff[1] / sig_c[1], 2) > 1 || quadrature_points_history[point].max_damage > 0 +1e-6 || damage > 0 +1e-6)
                             quadrature_points_history[point].is_damaged = true;
 
                 if (par.type == "intrinsic")
@@ -1835,6 +1838,7 @@ namespace Friction_adaptivity_everywhere
 
         if (counter != 0)
         {
+
             triangulation.prepare_coarsening_and_refinement();
             parallel::distributed::SolutionTransfer<dim, LA::MPI::Vector> solution_transfer(dof_handler);
             solution_transfer.prepare_for_coarsening_and_refinement(distributed_solution);
@@ -1844,7 +1848,7 @@ namespace Friction_adaptivity_everywhere
             DoFHandler<dim> history_dof_handler(triangulation);
             history_dof_handler.distribute_dofs(history_fe);
 
-            // $ you might not need all of these vecots
+            // $ you might not need all of these vectors
             std::vector<LA::MPI::Vector> distributed_history_max_damage_field(4),
                 ghosted_history_max_damage_field(4),
                 distributed_history_Freddi_g_field(4),
@@ -2090,7 +2094,6 @@ namespace Friction_adaptivity_everywhere
                         }
 
                         PointHistory<dim> *quadrature_points_history = reinterpret_cast<PointHistory<dim> *>(cell->face(face)->user_pointer());
-
                         if (quadrature_points_history != nullptr)
                             for (unsigned int q = 0; q < face_quadrature->size(); ++q)
                             {
@@ -2142,8 +2145,9 @@ namespace Friction_adaptivity_everywhere
                     {
 
                         PointHistory<dim> *quadrature_points_history = reinterpret_cast<PointHistory<dim> *>(cell->face(face_number)->user_pointer());
-                        for (unsigned int q_point = 0; q_point < face_quadrature->size(); ++q_point)
-                            damage(cell->active_cell_index()) = std::max(damage(cell->active_cell_index()), quadrature_points_history[q_point].damage);
+                        if (quadrature_points_history != nullptr)
+                            for (unsigned int q_point = 0; q_point < face_quadrature->size(); ++q_point)
+                                damage(cell->active_cell_index()) = std::max(damage(cell->active_cell_index()), quadrature_points_history[q_point].damage);
                     }
             data_out.add_data_vector(damage, "damage");
 
@@ -2239,14 +2243,9 @@ namespace Friction_adaptivity_everywhere
             std::vector<Tensor<2, dim>> grads_2(n_q_points);
             fe_fv2[displacements].get_function_gradients(ghosted_solution, grads_2);
 
-            PointHistory<dim> *quadrature_points_history = reinterpret_cast<PointHistory<dim> *>(cell->face(f)->user_pointer());
-
             if (cell->material_id() != ncell->material_id())
                 for (unsigned int point = 0; point < n_q_points; ++point)
                 {
-
-                    /// update old history data
-                    quadrature_points_history[point].old_law_g = quadrature_points_history[point].law_g;
 
                     counter++;
 
@@ -2328,7 +2327,6 @@ namespace Friction_adaptivity_everywhere
                     << "damage"
                     << "\n";
             q_point.close();
-            
         }
 
         MeshWorker::mesh_loop(dof_handler.begin_active(),
@@ -2370,7 +2368,7 @@ namespace Friction_adaptivity_everywhere
             if (par.geometry == "half_matrix")
                 f.open("half_matrix.msh");
             else if (par.geometry == "matrix")
-                f.open("matrix1.msh");
+                f.open("matrix4.msh");
             else if (par.geometry == "hole")
                 f.open("hole.msh");
             gridin.read_msh(f);
@@ -2560,7 +2558,6 @@ namespace Friction_adaptivity_everywhere
                 forces.open(par.output_directory + "/" + par.file_name + ".txt", std::ios_base::app);
                 if (forces.is_open() == false)
                 {
-                    pcout << "File didn't open\n";
                     exit(1);
                 }
 
