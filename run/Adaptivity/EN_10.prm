@@ -5,7 +5,7 @@ subsection main
 	set degree           = 1
 	set quadrature       = gauss       #gauss|lobatto|gauss-reduced
 	set symmetry         = 0
- 	set penalty_factor   = 10
+ 	set penalty_factor   = 20
 
 	subsection geometry
 		set geometry = EN_10       #reactangle|half_matrix|matrix|hole|ENF|EN_10
@@ -25,20 +25,20 @@ subsection main
 		### interface ####
 		set sig_ics = 0.1
 		set sig_icn = 0.1
-		set delta_ics = 1e-4
-		set delta_icn = 1e-4
-		set G_ics  =  1.25e-3
-		set G_icn  =  1.25e-3
+		set delta_ics = 1e-3
+		set delta_icn = 1e-3
+		set G_ics  =  15e-4
+		set G_icn  =  15e-4
 		
 		### bulk ###
 		set sig_cs = 0.1
 		set sig_cn = 0.1
-		set delta_cs = 1e-4
-		set delta_cn = 1e-4
-		set G_cs  =  1.25e-3
-		set G_cn  = 1.25e-3
+		set delta_cs = 1e-3
+		set delta_cn = 1e-3
+		set G_cs  =  15e-4
+		set G_cn  = 15e-4
 		
-		set penetration_penalty = 2e+4
+		set penetration_penalty = 1e+5
 		set viscosity = 0.0
 
 	end
@@ -50,15 +50,15 @@ subsection main
 
 		####
 		set jacobian_reg1  = 1.0    # sth like 1.0
-		set jacobian_reg2  = 0.1    # sth like 0.1 
-		set jacobian_reg3  = 0.05    # inspired from viscosity
+		set jacobian_reg2  = 0.5    # sth like 0.1 
+		set jacobian_reg3  = 0.1    # inspired from viscosity
  
 		####
 		set always_check_for_damage_and_unloading = false
 				
 		####
 		set update_damage_once = false     ### update damage once for the first few iters    
-		set max_external_iterations = 0
+		set max_external_iterations = 1
 		set damage_error          = 1e-5
 
 		####
@@ -75,13 +75,13 @@ subsection main
 	subsection solver_control
 		set cycles= 3000
 		set max_nonlin_iter = 1500
-		set error = 1e-8
-		set displacementx =  0
-		set displacementy = 5e-4
+		set error = 1e-7
+		set displacementx =  2.5e-3
+		set displacementy = 0
 		set unloading = 2699
 		set reloading = 4599
 		set output_directory = ./outputEN_10
-		set file_name = forces1
-		set output_frequency = 5
+		set file_name = forces0
+		set output_frequency = 1
 	end	
 end

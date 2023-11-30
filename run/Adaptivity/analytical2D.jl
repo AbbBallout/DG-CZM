@@ -94,7 +94,7 @@ xlabel!("u_s [mm]")
 ylabel!("sigma_s [MPa]")
 plot!(grid=true, gridlinewidth=3)
 
-us = 0:0.0001:1.0
+us = 0:0.0001:1.2
 
 sigma_cs = 1.0
 delta_cs = 0.1
@@ -115,22 +115,22 @@ theta = 1e+5
 # un, TCZ = analytical(0.8,-1,us)
 # plot_2D(0.8,-1,us,un)
 
-# ylims!(0, 1.4)
-# savefig("analytical_mu_plot.svg")
+#ylims!(0, 1.4)
+#savefig("analytical_mu_plot.svg")
 
 # un, TCZ = analytical(0.5,1.5,us)
-# plot_2D(0.5,-1,us,un)
+# plot_2D(0.5,1.5,us,un)
 # un, TCZ = analytical(0.5,0.75,us)
-# plot_2D(0.5,-1,us,un)
+# plot_2D(0.5,0.75,us,un)
 # un, TCZ = analytical(0.5,0,us)
-# plot_2D(0.5,-1,us,un)
+# plot_2D(0.5,0,us,un)
 # un, TCZ = analytical(0.5,-0.75,us)
-# plot_2D(0.5,-1,us,un)
+# plot_2D(0.5,-0.75,us,un)
 # un, TCZ = analytical(0.5,-1.5,us)
-# plot_2D(0.5,-1,us,un)
+# plot_2D(0.5,-1.5,us,un)
 
 # ylims!(0, 1.4)
-# savefig("analytical_tn_value_plot.svg")
+#savefig("analytical_tn_value_plot.svg")
 
 
 
@@ -165,7 +165,6 @@ plot!(
     legend = :outertopright,  # Move legend to the outer top-right corner
     camera = (70, 35),  # Adjust camera angles
 )
-#surface(u_n_vals, us, TCZ_3D_n)
 
-
+# savefig("analytical_TCZ3D.svg")
 

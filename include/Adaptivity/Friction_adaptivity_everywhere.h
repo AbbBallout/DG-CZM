@@ -72,7 +72,7 @@ template <int dim>
 dealii::Point<dim> grid_y_transform(const dealii::Point<dim> &pt_in)
 {
 
-    const double max_slope = 1.0;
+    const double max_slope = -1.0;
     double slope = (pt_in[1] - 0.5 * pt_in[1] * pt_in[1]) * max_slope;
     dealii::Point<dim> pt_out = pt_in;
 
@@ -112,7 +112,7 @@ namespace Friction_adaptivity_everywhere
 
             enter_subsection("geometry");
             {
-                add_parameter("geometry", geometry, " ", this->prm, Patterns::Selection("reactangle|half_matrix|matrix|hole|ENF|EN_10"));
+                add_parameter("geometry", geometry, " ", this->prm, Patterns::Selection("reactangle|half_matrix|matrix|hole|ENF|EN_10|shaft"));
                 add_parameter("E1", E1, " ", this->prm, Patterns::Double());
                 add_parameter("nu1", nu1, " ", this->prm, Patterns::Double());
                 add_parameter("E2", E2, " ", this->prm, Patterns::Double());
@@ -869,7 +869,7 @@ namespace Friction_adaptivity_everywhere
 
             if (par.geometry == "ENF")
             {
-                double rad = 2;
+                double rad = 0.5;
 
                 if (cell->face(face_no)->boundary_id() == 2 && std::abs(cell->face(face_no)->center()[0] - 0) < rad)
                     for (unsigned int point = 0; point < n_q_points; ++point)
@@ -1116,11 +1116,118 @@ namespace Friction_adaptivity_everywhere
 
                 if (cell->face(face_no)->boundary_id() == 3)
                     for (unsigned int point = 0; point < n_q_points; ++point)
-                    {
-
                         for (unsigned int i = 0; i < n_facet_dofs; ++i)
                             copy_data.cell_rhs(i) += fe_fv[displacements].value(i, point) * compressive_force * JxW[point]; // dx
+            }
+
+            if (par.geometry == "shaft")
+            {
+
+                Tensor<1, dim> compressive_force;
+                if (cell->face(face_no)->boundary_id() == 0)
+                    compressive_force[0] = 0.7;
+                else
+                    compressive_force[0] = -0.7;
+
+                if (cell->face(face_no)->boundary_id() == 3 && cell->material_id()==1)
+                    for (unsigned int point = 0; point < n_q_points; ++point)
+                    {
+                        Tensor<2, dim> strain = 0.5 * (gradu[point] + transpose(gradu[point]));
+
+                        for (unsigned int i = 0; i < n_facet_dofs; ++i)
+                        {
+                            Tensor<2, dim> strain_i = 0.5 * (fe_fv[displacements].gradient(i, point) + transpose(fe_fv[displacements].gradient(i, point)));
+
+                            for (unsigned int j = 0; j < n_facet_dofs; ++j)
+                            {
+                                Tensor<2, dim> strain_j = 0.5 * (fe_fv[displacements].gradient(j, point) + transpose(fe_fv[displacements].gradient(j, point)));
+
+                                copy_data.cell_matrix(i, j) +=
+                                    (-fe_fv[displacements].value(i, point) *
+                                         (lambda * trace(strain_j) * Identity + 2 * mu * strain_j) * normals[point]
+
+                                     + par.symmetry *
+                                           (lambda * trace(strain_i) * Identity + 2 * mu * strain_i) * normals[point] *
+                                           fe_fv[displacements].value(j, point) // Symetry term
+
+                                     + penalty * fe_fv[displacements].value(i, point) * fe_fv[displacements].value(j, point)) *
+                                    JxW[point];
+                            }
+
+                            copy_data.cell_rhs(i) +=
+
+                                -(
+                                    -fe_fv[displacements].value(i, point) *
+                                        (lambda * trace(strain) * Identity + 2 * mu * strain) * normals[point]
+
+                                    + par.symmetry *
+                                          (lambda * trace(strain_i) * Identity + 2 * mu * strain_i) * normals[point] *
+                                          old_solution_values[point] // Symetry term
+
+                                    + penalty * fe_fv[displacements].value(i, point) * old_solution_values[point]) *
+                                    JxW[point]
+
+                                + par.symmetry * (lambda * trace(strain_i) * Identity + 2 * mu * strain_i) * normals[point] *
+                                      ((cell->face(face_no)->boundary_id() - 2) * disp) * JxW[point] // Symetry term
+
+                                + penalty *
+                                      fe_fv[displacements].value(i, point) * ((cell->face(face_no)->boundary_id() - 2) * disp) *
+                                      JxW[point]; // dx
+                        }
                     }
+
+                if (cell->face(face_no)->boundary_id() == 2 && cell->material_id()!=1)
+
+                    for (unsigned int point = 0; point < n_q_points; ++point)
+                    {
+                        Tensor<2, dim> strain = 0.5 * (gradu[point] + transpose(gradu[point]));
+
+                        for (unsigned int i = 0; i < n_facet_dofs; ++i)
+                        {
+                            Tensor<2, dim> straini = 0.5 * (fe_fv[displacements].gradient(i, point) + transpose(fe_fv[displacements].gradient(i, point)));
+
+                            for (unsigned int j = 0; j < n_facet_dofs; ++j)
+                            {
+                                Tensor<2, dim> strainj = 0.5 * (fe_fv[displacements].gradient(j, point) + transpose(fe_fv[displacements].gradient(j, point)));
+
+                                copy_data.cell_matrix(i, j) +=
+                                    ((-fe_fv[displacements].value(i, point) * normals[point]) *
+                                         (((lambda * trace(strainj) * Identity + 2 * mu * strainj) * normals[point]) * normals[point])
+
+                                     + par.symmetry *
+                                           (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
+                                           (fe_fv[displacements].value(j, point) * normals[point]) // Symetry term
+
+                                     + penalty * (fe_fv[displacements].value(i, point) * normals[point]) * (fe_fv[displacements].value(j, point) * normals[point])) *
+                                    JxW[point];
+                            }
+
+                            copy_data.cell_rhs(i) +=
+
+                                -(
+                                    -(fe_fv[displacements].value(i, point) * normals[point]) *
+                                        (((lambda * trace(strain) * Identity + 2 * mu * strain) * normals[point]) * normals[point])
+
+                                    + par.symmetry *
+                                          (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
+                                          (old_solution_values[point] * normals[point]) // Symetry term
+
+                                    + penalty * (fe_fv[displacements].value(i, point) * normals[point]) * (old_solution_values[point] * normals[point])) *
+                                    JxW[point]
+
+                                + par.symmetry * (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
+                                      disp * normals[point] * JxW[point] * 0.0 // Symetry term
+
+                                + penalty *
+                                      fe_fv[displacements].value(i, point) * normals[point] * disp * normals[point] * 0.0 *
+                                      JxW[point]; // dx
+                        }
+                    }
+
+                if (cell->face(face_no)->boundary_id() == 0 || cell->face(face_no)->boundary_id() == 1)
+                    for (unsigned int point = 0; point < n_q_points; ++point)
+                        for (unsigned int i = 0; i < n_facet_dofs; ++i)
+                            copy_data.cell_rhs(i) += fe_fv[displacements].value(i, point) * compressive_force * JxW[point]; // dx
             }
         };
 
@@ -1294,7 +1401,7 @@ namespace Friction_adaptivity_everywhere
 
                 if ((non_lin == 1 && par.always_check_for_damage_and_unloading == false) || par.always_check_for_damage_and_unloading == true)
                     if (par.type == "extrinsic")
-                        if (std::pow(traction_eff[0] / sig_c[0], 2) + std::pow(traction_eff[1] / sig_c[1], 2) > 1 || quadrature_points_history[point].max_damage > 0 +1e-6 || damage > 0 +1e-6)
+                        if (std::pow(traction_eff[0] / sig_c[0], 2) + std::pow(traction_eff[1] / sig_c[1], 2) > 1 || quadrature_points_history[point].max_damage > 0 + 1e-6 || damage > 0 + 1e-6)
                             quadrature_points_history[point].is_damaged = true;
 
                 if (par.type == "intrinsic")
@@ -1326,7 +1433,7 @@ namespace Friction_adaptivity_everywhere
                 if (quadrature_points_history[point].is_damaged && damage > 1 - 1e-12)
                     quadrature_points_history[point].is_fully_damaged = true;
 
-                if (par.geometry == "ENF" && cell->material_id() != ncell->material_id() && cell->face(f)->center()[0] > 100)
+                if (par.geometry == "ENF" && cell->material_id() != ncell->material_id() && cell->face(f)->center()[0] > 105)
                 {
                     quadrature_points_history[point].is_fully_damaged = true;
                     quadrature_points_history[point].is_damaged = true;
@@ -1492,6 +1599,7 @@ namespace Friction_adaptivity_everywhere
                 }
 
                 TCZ[0][0] += par.jacobian_reg3 / (std::sqrt(std::pow(par.displacementx, 2) + std::pow(par.displacementy, 2)));
+                TCZ[1][1] += par.jacobian_reg3 / (std::sqrt(std::pow(par.displacementx, 2) + std::pow(par.displacementy, 2)));
 
                 if (par.is_everywhere == false)
                     if (cell->material_id() == ncell->material_id())
@@ -2066,7 +2174,6 @@ namespace Friction_adaptivity_everywhere
                 }
 
             // interpolate form solution vectors to q point.
-
             FEFaceValues<dim> fe_fv_damage(history_fe,
                                            *face_quadrature,
                                            update_values | update_quadrature_points);
@@ -2140,15 +2247,15 @@ namespace Friction_adaptivity_everywhere
             Vector<double> damage(triangulation.n_active_cells());
 
             for (const auto &cell : dof_handler.active_cell_iterators())
-                if (cell->is_locally_owned())
-                    for (unsigned int face_number = 0; face_number < GeometryInfo<2>::faces_per_cell; ++face_number)
-                    {
+                // if (cell->is_locally_owned())
+                for (unsigned int face_number = 0; face_number < GeometryInfo<2>::faces_per_cell; ++face_number)
+                {
 
-                        PointHistory<dim> *quadrature_points_history = reinterpret_cast<PointHistory<dim> *>(cell->face(face_number)->user_pointer());
-                        if (quadrature_points_history != nullptr)
-                            for (unsigned int q_point = 0; q_point < face_quadrature->size(); ++q_point)
-                                damage(cell->active_cell_index()) = std::max(damage(cell->active_cell_index()), quadrature_points_history[q_point].damage);
-                    }
+                    PointHistory<dim> *quadrature_points_history = reinterpret_cast<PointHistory<dim> *>(cell->face(face_number)->user_pointer());
+                    if (quadrature_points_history != nullptr)
+                        for (unsigned int q_point = 0; q_point < face_quadrature->size(); ++q_point)
+                            damage(cell->active_cell_index()) = std::max(damage(cell->active_cell_index()), quadrature_points_history[q_point].damage);
+                }
             data_out.add_data_vector(damage, "damage");
 
             data_out.build_patches();
@@ -2191,9 +2298,12 @@ namespace Friction_adaptivity_everywhere
             Tensor<1, dim> tangential;
             Tensor<1, dim> local_reaction;
 
-            if ((cell->face(face_no)->boundary_id() == boundary_id))
-                //  if (cell->face(face_no)->boundary_id() == boundary_id && (std::abs(cell->face(face_no)->center()[0] - 70) < rad / 2))
-                // if (cell->face(face_no)->boundary_id() == 0 && std::abs(cell->face(face_no)->center()[1]) < 55 / 2 && cell->material_id() == 1)
+            double rad = 0.5;
+
+            //if ((cell->face(face_no)->boundary_id() == boundary_id) && cell->material_id()==1)
+            //if ((cell->face(face_no)->boundary_id() == boundary_id))
+                // if (cell->face(face_no)->boundary_id() == boundary_id && (std::abs(cell->face(face_no)->center()[0] - 70) < rad / 2))
+                 if (cell->face(face_no)->boundary_id() == 0 && std::abs(cell->face(face_no)->center()[1]) < 55 / 2 && cell->material_id() == 1)
                 for (unsigned int point = 0; point < n_q_points; ++point)
                 {
 
@@ -2368,7 +2478,7 @@ namespace Friction_adaptivity_everywhere
             if (par.geometry == "half_matrix")
                 f.open("half_matrix.msh");
             else if (par.geometry == "matrix")
-                f.open("matrix4.msh");
+                f.open("matrix3.msh");
             else if (par.geometry == "hole")
                 f.open("hole.msh");
             gridin.read_msh(f);
@@ -2413,6 +2523,25 @@ namespace Friction_adaptivity_everywhere
             }
             // triangulation.execute_coarsening_and_refinement();
         }
+        else if (par.geometry == "shaft")
+        {
+            Point<dim> P1(0, 0), P2(4, 1);
+            std::vector<unsigned int> repetitions{4, 1};
+            GridGenerator::subdivided_hyper_rectangle(triangulation, repetitions, P1, P2, true);
+            triangulation.refine_global(par.initial_refinement);
+
+            Point<dim> p;
+            for (const auto &cell : triangulation.active_cell_iterators())
+            {
+                p = cell->center();
+                if (std::abs(p[0] - 2.0) < 0.25)
+                    cell->set_material_id(1);
+                else
+                {
+                    cell->set_material_id(2);
+                }
+            }
+        }
         else
             throw std::runtime_error("no input mesh");
 
@@ -2422,6 +2551,9 @@ namespace Friction_adaptivity_everywhere
         pcout << " written to "
               << "grid-1.vtu" << std::endl
               << std::endl;
+
+        pcout << "   Number of active cells:       "
+              << triangulation.n_active_cells() << std::endl;
 
         if (par.is_distorted)
         {

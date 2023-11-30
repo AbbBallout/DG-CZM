@@ -2,7 +2,7 @@ subsection main
 	set testing_I = 0
 	set testing_F = 0
 	 
-	set degree           = 1
+	set degree           = 2
 	set quadrature       = gauss       #gauss|lobatto|gauss-reduced
 	set symmetry         = 0
  	set penalty_factor   = 10
@@ -73,15 +73,15 @@ subsection main
 	
 	
 	subsection solver_control
-		set cycles= 250
+		set cycles= 450
 		set max_nonlin_iter = 200
-		set error = 1e-8
+		set error = 1e-7
 		set displacementx =  0
 		set displacementy = 2e-4
 		set unloading = 2699
 		set reloading = 4599
 		set output_directory = ./outputmatrix
-		set file_name = forces1
+		set file_name = forces99
 		set output_frequency = 1
 	end	
 end
