@@ -137,9 +137,8 @@ end
 #plot_data("forces_0.1_cof_2", true, false, false, 0, "cof0.6 0.1 reg3 0.005 dx1e-3 refine 6+7 degree=1 extrinsic",:solid)
 #plot_data("forces_0.1_cof_3", true, false, false, 0, "cof0.6 0.1 reg3 0.005 dx1e-3 refine 6+7 degree=2 extrinsic",:solid)
 
-#### testing w adaptivity
-plot_data("forces_0.1_cof_4", true, false, false, 0, "cof0.6 0.1 reg3 0.005 dx1e-3 refine 6+7 degree=2 extrinsic",:solid)
-plot_data("forces_0.1_cof_5", true, false, false, 0, "cof0.6 0.1 reg3 0.005 dx1e-3 refine 6+adaptivity degree=2 extrinsic",:solid)
+#### testing w adaptivity and hanging nodes
+plot_data("forces_0.1_cof_4", true, false, false, 0, "cof0.6 comp0.1 reg3-0.005 dx1e-3 refine 6+7 degree=2 extrinsic",:solid)
 
 
 #plot!(legend=(0.8, 0.6))

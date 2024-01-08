@@ -66,9 +66,9 @@ subsection main
 	end
 
 	subsection adaptivity
-	 	set with_adaptivity  = true
+	 	set with_adaptivity  = false
 	 	set threshold_stress_factor = 0.98    #less than one
-	 	set max_cell_level  = 1
+	 	set max_cell_level  = 7
 	end
 	
 	
@@ -81,7 +81,7 @@ subsection main
 		set unloading = 269999
 		set reloading = 459999
 		set output_directory = ./outputEN_10
-		set file_name = forces_0.1_cof_5
+		set file_name = forces_0.1_cof_4
 		set output_frequency = 1
 	end	
 end

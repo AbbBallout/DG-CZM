@@ -2555,15 +2555,15 @@ namespace Friction_adaptivity_everywhere
                 }
             }
 
-            //  for (unsigned int i = 0; i < 1; ++i)
-            //  {
-            //      for (const auto &cell : triangulation.active_cell_iterators())
-            //      {
-            //          if (cell->material_id() == 2)
-            //              cell->set_refine_flag();
-            //      }
-            //      triangulation.execute_coarsening_and_refinement();
-            // }
+             for (unsigned int i = 0; i < 1; ++i)
+             {
+                 for (const auto &cell : triangulation.active_cell_iterators())
+                 {
+                     if (cell->material_id() == 2)
+                         cell->set_refine_flag();
+                 }
+                 triangulation.execute_coarsening_and_refinement();
+            }
         }
         else if (par.geometry == "shaft")
         {
@@ -2609,6 +2609,7 @@ namespace Friction_adaptivity_everywhere
         setup_quadrature_point_history();
 
         double error;
+        double update;
         unsigned int non_lin = 0;
         unsigned int max_nonlin_iter = par.max_nonlin_iter;
         unsigned int max_nonlin_output = 0;
@@ -2621,6 +2622,7 @@ namespace Friction_adaptivity_everywhere
         for (int cycle = 0; cycle < par.cycles; ++cycle)
         {
             error = 1;
+            update = 1;
             non_lin = 0;
 
             if (cycle < par.unloading || cycle > par.reloading)
@@ -2645,7 +2647,7 @@ namespace Friction_adaptivity_everywhere
 
             bool doing_external_iterations = external_iterations < max_external_iterations;
 
-            while ((error > par.error && non_lin < max_nonlin_iter) || doing_external_iterations)
+            while ((error > par.error && update >1e-13  && non_lin < max_nonlin_iter) || doing_external_iterations)
             {
                 if (external_iterations >= max_external_iterations)
                     doing_external_iterations = false;
@@ -2674,6 +2676,7 @@ namespace Friction_adaptivity_everywhere
                     {   
                         stagnation_counter=0;
                         pcout<<"stagnation caught residual is " << system_rhs.l2_norm() << "\n"; 
+                        //non_lin  = max_nonlin_iter;
                         break; 
                     }
 
@@ -2691,6 +2694,7 @@ namespace Friction_adaptivity_everywhere
 
                     solve(prev_error, non_lin);
                     pcout << "  update l2_norm " << distributed_newton_update.l2_norm() << std::endl;
+                    update = distributed_newton_update.l2_norm(); 
                 }
                 else if (doing_external_iterations)
                 {
