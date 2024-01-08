@@ -1,5 +1,5 @@
-#if !defined Friction_adaptivity_everywhere_H
-#define Friction_adaptivity_everywhere_H
+#ifndef REWRITE_H
+#define REWRITE_H
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/function.h>
@@ -72,7 +72,9 @@ template <int dim>
 dealii::Point<dim> grid_y_transform(const dealii::Point<dim> &pt_in)
 {
 
-    const double max_slope = -1.0;
+    // const double max_slope = -1.0;
+    const double max_slope = 1.0;
+
     double slope = (pt_in[1] - 0.5 * pt_in[1] * pt_in[1]) * max_slope;
     dealii::Point<dim> pt_out = pt_in;
 
@@ -82,7 +84,7 @@ dealii::Point<dim> grid_y_transform(const dealii::Point<dim> &pt_in)
     return pt_out;
 }
 
-namespace Friction_adaptivity_everywhere
+namespace Rewrite
 {
     using namespace dealii;
 
@@ -112,7 +114,7 @@ namespace Friction_adaptivity_everywhere
 
             enter_subsection("geometry");
             {
-                add_parameter("geometry", geometry, " ", this->prm, Patterns::Selection("reactangle|half_matrix|matrix|hole|ENF|EN_10|shaft"));
+                add_parameter("geometry", geometry, " ", this->prm, Patterns::Selection("reactangle|matrix"));
                 add_parameter("E1", E1, " ", this->prm, Patterns::Double());
                 add_parameter("nu1", nu1, " ", this->prm, Patterns::Double());
                 add_parameter("E2", E2, " ", this->prm, Patterns::Double());
@@ -387,16 +389,16 @@ namespace Friction_adaptivity_everywhere
     };
 
     template <int dim>
-    class Friction_adaptivity_everywhere
+    class Rewrite
     {
     public:
-        Friction_adaptivity_everywhere(const ProblemParameters<dim> &par);
+        Rewrite(const ProblemParameters<dim> &par);
         void run();
 
     private:
         void setup_system(const bool initial_step);
         void assemble_system(const unsigned int cycle, const unsigned int non_lin, const double error, const bool doing_external_iterations, const unsigned int external_iterations);
-        void solve(double prev_error, const unsigned int non_lin);
+        void solve(double prev_error);
         double calculate_damage_error();
         void refine_mesh();
         void output_results(const unsigned int cycle) const;
@@ -442,11 +444,10 @@ namespace Friction_adaptivity_everywhere
 
         Tensor<2, dim> Identity;
         double newton_relaxation;
-        unsigned int stagnation_counter;
     };
 
     template <int dim>
-    Friction_adaptivity_everywhere<dim>::Friction_adaptivity_everywhere(const ProblemParameters<dim> &par)
+    Rewrite<dim>::Rewrite(const ProblemParameters<dim> &par)
         : par(par),
           mpi_communicator(MPI_COMM_WORLD),
           triangulation(mpi_communicator),
@@ -463,6 +464,7 @@ namespace Friction_adaptivity_everywhere
         TimerOutput::Scope t(computing_timer, "other");
         disp = 0.0;
         newton_relaxation = par.newton_relaxation;
+
         Identity[0][0] = 1;
         Identity[1][1] = 1;
 
@@ -475,7 +477,7 @@ namespace Friction_adaptivity_everywhere
     }
 
     template <int dim>
-    void Friction_adaptivity_everywhere<dim>::ENLM(const unsigned int material_ID, double &E, double &nu, double &lambda, double &mu)
+    void Rewrite<dim>::ENLM(const unsigned int material_ID, double &E, double &nu, double &lambda, double &mu)
     {
         if (material_ID == 1)
         {
@@ -493,7 +495,7 @@ namespace Friction_adaptivity_everywhere
     }
 
     template <int dim>
-    void Friction_adaptivity_everywhere<dim>::setup_quadrature_point_history()
+    void Rewrite<dim>::setup_quadrature_point_history()
     {
         TimerOutput::Scope t(computing_timer, "other");
 
@@ -516,7 +518,7 @@ namespace Friction_adaptivity_everywhere
     }
 
     template <int dim>
-    void Friction_adaptivity_everywhere<dim>::setup_system(const bool initial_step)
+    void Rewrite<dim>::setup_system(const bool initial_step)
     {
         TimerOutput::Scope t(computing_timer, "set up");
         if (initial_step)
@@ -554,7 +556,7 @@ namespace Friction_adaptivity_everywhere
         pcout << "dofs = " << dof_handler.n_dofs() << std::endl;
     }
     template <int dim>
-    void Friction_adaptivity_everywhere<dim>::assemble_system(const unsigned int cycle, const unsigned int non_lin, const double error, const bool doing_external_iterations, const unsigned int external_iterations)
+    void Rewrite<dim>::assemble_system(const unsigned int cycle, const unsigned int non_lin, const double error, const bool doing_external_iterations, const unsigned int external_iterations)
     {
         TimerOutput::Scope t(computing_timer, "Assemble");
 
@@ -625,8 +627,9 @@ namespace Friction_adaptivity_everywhere
 
             double penalty = (par.degree * par.degree) * (par.penalty_factor) * elasticity / (cell->diameter());
 
-            if (par.geometry == "reactangle" || par.geometry == "hole")
-                if ((cell->face(face_no)->boundary_id() == 2) || cell->face(face_no)->boundary_id() == 3)
+            if (par.geometry == "reactangle" || par.geometry == "matrix")
+            {
+                if (cell->face(face_no)->boundary_id() == 2)
                     for (unsigned int point = 0; point < n_q_points; ++point)
                     {
                         Tensor<2, dim> strain = 0.5 * (gradu[point] + transpose(gradu[point]));
@@ -665,472 +668,16 @@ namespace Friction_adaptivity_everywhere
                                     JxW[point]
 
                                 + par.symmetry * (lambda * trace(strain_i) * Identity + 2 * mu * strain_i) * normals[point] *
-                                      ((cell->face(face_no)->boundary_id() - 2) * disp) * JxW[point] // Symetry term
+                                      (0 * disp) * JxW[point] // Symetry term
 
                                 + penalty *
-                                      fe_fv[displacements].value(i, point) * ((cell->face(face_no)->boundary_id() - 2) * disp) *
-                                      JxW[point]; // dx
-                        }
-                    }
-
-            if (par.geometry == "matrix")
-            {
-                if ((cell->face(face_no)->boundary_id() == 2) || cell->face(face_no)->boundary_id() == 3)
-                    for (unsigned int point = 0; point < n_q_points; ++point)
-                    {
-                        Tensor<2, dim> strain = 0.5 * (gradu[point] + transpose(gradu[point]));
-
-                        for (unsigned int i = 0; i < n_facet_dofs; ++i)
-                        {
-                            Tensor<2, dim> straini = 0.5 * (fe_fv[displacements].gradient(i, point) + transpose(fe_fv[displacements].gradient(i, point)));
-
-                            for (unsigned int j = 0; j < n_facet_dofs; ++j)
-                            {
-                                Tensor<2, dim> strainj = 0.5 * (fe_fv[displacements].gradient(j, point) + transpose(fe_fv[displacements].gradient(j, point)));
-
-                                copy_data.cell_matrix(i, j) +=
-                                    ((-fe_fv[displacements].value(i, point) * normals[point]) *
-                                         (((lambda * trace(strainj) * Identity + 2 * mu * strainj) * normals[point]) * normals[point])
-
-                                     + par.symmetry *
-                                           (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                           (fe_fv[displacements].value(j, point) * normals[point]) // Symetry term
-
-                                     + penalty * (fe_fv[displacements].value(i, point) * normals[point]) * (fe_fv[displacements].value(j, point) * normals[point])) *
-                                    JxW[point];
-                            }
-
-                            copy_data.cell_rhs(i) +=
-
-                                -(
-                                    -(fe_fv[displacements].value(i, point) * normals[point]) *
-                                        (((lambda * trace(strain) * Identity + 2 * mu * strain) * normals[point]) * normals[point])
-
-                                    + par.symmetry *
-                                          (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                          (old_solution_values[point] * normals[point]) // Symetry term
-
-                                    + penalty * (fe_fv[displacements].value(i, point) * normals[point]) * (old_solution_values[point] * normals[point])) *
-                                    JxW[point]
-
-                                + par.symmetry * (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                      (((cell->face(face_no)->boundary_id() - 2) * disp * normals[point])) * JxW[point] // Symetry term
-
-                                + penalty *
-                                      fe_fv[displacements].value(i, point) * normals[point] * (((cell->face(face_no)->boundary_id() - 2) * disp * normals[point])) *
-                                      JxW[point]; // dx
-                        }
-                    }
-
-                if (cell->face(face_no)->boundary_id() == 2 && std::abs(cell->center()[0] - 0.5) < 0.025)
-                    for (unsigned int point = 0; point < n_q_points; ++point)
-                    {
-                        Tensor<2, dim> strain = 0.5 * (gradu[point] + transpose(gradu[point]));
-
-                        for (unsigned int i = 0; i < n_facet_dofs; ++i)
-                        {
-                            Tensor<2, dim> strain_i = 0.5 * (fe_fv[displacements].gradient(i, point) + transpose(fe_fv[displacements].gradient(i, point)));
-
-                            for (unsigned int j = 0; j < n_facet_dofs; ++j)
-                            {
-                                Tensor<2, dim> strain_j = 0.5 * (fe_fv[displacements].gradient(j, point) + transpose(fe_fv[displacements].gradient(j, point)));
-
-                                copy_data.cell_matrix(i, j) +=
-                                    (-fe_fv[displacements].value(i, point) *
-                                         (lambda * trace(strain_j) * Identity + 2 * mu * strain_j) * normals[point]
-
-                                     + par.symmetry *
-                                           (lambda * trace(strain_i) * Identity + 2 * mu * strain_i) * normals[point] *
-                                           fe_fv[displacements].value(j, point) // Symetry term
-
-                                     + penalty * fe_fv[displacements].value(i, point) * fe_fv[displacements].value(j, point)) *
-                                    JxW[point];
-                            }
-
-                            copy_data.cell_rhs(i) +=
-
-                                -(
-                                    -fe_fv[displacements].value(i, point) *
-                                        (lambda * trace(strain) * Identity + 2 * mu * strain) * normals[point]
-
-                                    + par.symmetry *
-                                          (lambda * trace(strain_i) * Identity + 2 * mu * strain_i) * normals[point] *
-                                          old_solution_values[point] // Symetry term
-
-                                    + penalty * fe_fv[displacements].value(i, point) * old_solution_values[point]) *
-                                    JxW[point]
-
-                                + par.symmetry * (lambda * trace(strain_i) * Identity + 2 * mu * strain_i) * normals[point] *
-                                      ((0.0) * disp) * JxW[point] // Symetry term
-
-                                + penalty *
-                                      fe_fv[displacements].value(i, point) * (0.0) * disp *
-                                      JxW[point]; // dx
-                        }
-                    }
-            }
-
-            if (par.geometry == "half_matrix")
-            {
-                if ((cell->face(face_no)->boundary_id() == 0) || (cell->face(face_no)->boundary_id() == 2))
-                    for (unsigned int point = 0; point < n_q_points; ++point)
-                    {
-                        Tensor<2, dim> strain = 0.5 * (gradu[point] + transpose(gradu[point]));
-
-                        for (unsigned int i = 0; i < n_facet_dofs; ++i)
-                        {
-                            Tensor<2, dim> straini = 0.5 * (fe_fv[displacements].gradient(i, point) + transpose(fe_fv[displacements].gradient(i, point)));
-
-                            for (unsigned int j = 0; j < n_facet_dofs; ++j)
-                            {
-                                Tensor<2, dim> strainj = 0.5 * (fe_fv[displacements].gradient(j, point) + transpose(fe_fv[displacements].gradient(j, point)));
-
-                                copy_data.cell_matrix(i, j) +=
-                                    ((-fe_fv[displacements].value(i, point) * normals[point]) *
-                                         (((lambda * trace(strainj) * Identity + 2 * mu * strainj) * normals[point]) * normals[point])
-
-                                     + par.symmetry *
-                                           (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                           (fe_fv[displacements].value(j, point) * normals[point]) // Symetry term
-
-                                     + penalty * (fe_fv[displacements].value(i, point) * normals[point]) * (fe_fv[displacements].value(j, point) * normals[point])) *
-                                    JxW[point];
-                            }
-
-                            copy_data.cell_rhs(i) +=
-
-                                -(
-                                    -(fe_fv[displacements].value(i, point) * normals[point]) *
-                                        (((lambda * trace(strain) * Identity + 2 * mu * strain) * normals[point]) * normals[point])
-
-                                    + par.symmetry *
-                                          (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                          (old_solution_values[point] * normals[point]) // Symetry term
-
-                                    + penalty * (fe_fv[displacements].value(i, point) * normals[point]) * (old_solution_values[point] * normals[point])) *
-                                    JxW[point]
-
-                                + par.symmetry * (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                      (0.0) * JxW[point] // Symetry term
-
-                                + penalty *
-                                      fe_fv[displacements].value(i, point) * normals[point] * (0.0) *
-                                      JxW[point]; // dx
-                        }
-                    }
-
-                if ((cell->face(face_no)->boundary_id() == 1))
-                    for (unsigned int point = 0; point < n_q_points; ++point)
-                    {
-                        Tensor<2, dim> strain = 0.5 * (gradu[point] + transpose(gradu[point]));
-
-                        for (unsigned int i = 0; i < n_facet_dofs; ++i)
-                        {
-                            Tensor<2, dim> straini = 0.5 * (fe_fv[displacements].gradient(i, point) + transpose(fe_fv[displacements].gradient(i, point)));
-
-                            for (unsigned int j = 0; j < n_facet_dofs; ++j)
-                            {
-                                Tensor<2, dim> strainj = 0.5 * (fe_fv[displacements].gradient(j, point) + transpose(fe_fv[displacements].gradient(j, point)));
-
-                                copy_data.cell_matrix(i, j) +=
-                                    ((-fe_fv[displacements].value(i, point) * normals[point]) *
-                                         (((lambda * trace(strainj) * Identity + 2 * mu * strainj) * normals[point]) * normals[point])
-
-                                     + par.symmetry *
-                                           (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                           (fe_fv[displacements].value(j, point) * normals[point]) // Symetry term
-
-                                     + penalty * (fe_fv[displacements].value(i, point) * normals[point]) * (fe_fv[displacements].value(j, point) * normals[point])) *
-                                    JxW[point];
-                            }
-
-                            copy_data.cell_rhs(i) +=
-
-                                -(
-                                    -(fe_fv[displacements].value(i, point) * normals[point]) *
-                                        (((lambda * trace(strain) * Identity + 2 * mu * strain) * normals[point]) * normals[point])
-
-                                    + par.symmetry *
-                                          (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                          (old_solution_values[point] * normals[point]) // Symetry term
-
-                                    + penalty * (fe_fv[displacements].value(i, point) * normals[point]) * (old_solution_values[point] * normals[point])) *
-                                    JxW[point]
-
-                                + par.symmetry * (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                      (disp * normals[point]) * JxW[point] // Symetry term
-
-                                + penalty *
-                                      fe_fv[displacements].value(i, point) * normals[point] * (disp * normals[point]) *
-                                      JxW[point]; // dx
-                        }
-                    }
-            }
-
-            if (par.geometry == "ENF")
-            {
-                double rad = 0.5;
-
-                if (cell->face(face_no)->boundary_id() == 2 && std::abs(cell->face(face_no)->center()[0] - 0) < rad)
-                    for (unsigned int point = 0; point < n_q_points; ++point)
-                    {
-                        Tensor<2, dim> strain = 0.5 * (gradu[point] + transpose(gradu[point]));
-
-                        for (unsigned int i = 0; i < n_facet_dofs; ++i)
-                        {
-                            Tensor<2, dim> strain_i = 0.5 * (fe_fv[displacements].gradient(i, point) + transpose(fe_fv[displacements].gradient(i, point)));
-
-                            for (unsigned int j = 0; j < n_facet_dofs; ++j)
-                            {
-                                Tensor<2, dim> strain_j = 0.5 * (fe_fv[displacements].gradient(j, point) + transpose(fe_fv[displacements].gradient(j, point)));
-
-                                copy_data.cell_matrix(i, j) +=
-                                    (-fe_fv[displacements].value(i, point) *
-                                         (lambda * trace(strain_j) * Identity + 2 * mu * strain_j) * normals[point]
-
-                                     + par.symmetry *
-                                           (lambda * trace(strain_i) * Identity + 2 * mu * strain_i) * normals[point] *
-                                           fe_fv[displacements].value(j, point) // Symetry term
-
-                                     + penalty * fe_fv[displacements].value(i, point) * fe_fv[displacements].value(j, point)) *
-                                    JxW[point];
-                            }
-
-                            copy_data.cell_rhs(i) +=
-
-                                -(
-                                    -fe_fv[displacements].value(i, point) *
-                                        (lambda * trace(strain) * Identity + 2 * mu * strain) * normals[point]
-
-                                    + par.symmetry *
-                                          (lambda * trace(strain_i) * Identity + 2 * mu * strain_i) * normals[point] *
-                                          old_solution_values[point] // Symetry term
-
-                                    + penalty * fe_fv[displacements].value(i, point) * old_solution_values[point]) *
-                                    JxW[point]
-
-                                + par.symmetry * (lambda * trace(strain_i) * Identity + 2 * mu * strain_i) * normals[point] *
-                                      (0.0) * disp * JxW[point] // Symetry term
-
-                                + penalty *
-                                      fe_fv[displacements].value(i, point) * (0.0) * disp *
-                                      JxW[point]; // dx
-                        }
-                    }
-
-                if (cell->face(face_no)->boundary_id() == 2 && std::abs(cell->face(face_no)->center()[0] - 140) < rad)
-                    for (unsigned int point = 0; point < n_q_points; ++point)
-                    {
-                        Tensor<2, dim> strain = 0.5 * (gradu[point] + transpose(gradu[point]));
-
-                        for (unsigned int i = 0; i < n_facet_dofs; ++i)
-                        {
-                            Tensor<2, dim> straini = 0.5 * (fe_fv[displacements].gradient(i, point) + transpose(fe_fv[displacements].gradient(i, point)));
-
-                            for (unsigned int j = 0; j < n_facet_dofs; ++j)
-                            {
-                                Tensor<2, dim> strainj = 0.5 * (fe_fv[displacements].gradient(j, point) + transpose(fe_fv[displacements].gradient(j, point)));
-
-                                copy_data.cell_matrix(i, j) +=
-                                    ((-fe_fv[displacements].value(i, point) * normals[point]) *
-                                         (((lambda * trace(strainj) * Identity + 2 * mu * strainj) * normals[point]) * normals[point])
-
-                                     + par.symmetry *
-                                           (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                           (fe_fv[displacements].value(j, point) * normals[point]) // Symetry term
-
-                                     + penalty * (fe_fv[displacements].value(i, point) * normals[point]) * (fe_fv[displacements].value(j, point) * normals[point])) *
-                                    JxW[point];
-                            }
-
-                            copy_data.cell_rhs(i) +=
-
-                                -(
-                                    -(fe_fv[displacements].value(i, point) * normals[point]) *
-                                        (((lambda * trace(strain) * Identity + 2 * mu * strain) * normals[point]) * normals[point])
-
-                                    + par.symmetry *
-                                          (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                          (old_solution_values[point] * normals[point]) // Symetry term
-
-                                    + penalty * (fe_fv[displacements].value(i, point) * normals[point]) * (old_solution_values[point] * normals[point])) *
-                                    JxW[point]
-
-                                + par.symmetry * (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                      (0.0) * JxW[point] // Symetry term
-
-                                + penalty *
-                                      fe_fv[displacements].value(i, point) * normals[point] * (0.0) *
-                                      JxW[point]; // dx
-                        }
-                    }
-
-                if (cell->face(face_no)->boundary_id() == 3 && (std::abs(cell->face(face_no)->center()[0] - 70) < rad / 2))
-                    for (unsigned int point = 0; point < n_q_points; ++point)
-                    {
-                        Tensor<2, dim> strain = 0.5 * (gradu[point] + transpose(gradu[point]));
-
-                        for (unsigned int i = 0; i < n_facet_dofs; ++i)
-                        {
-                            Tensor<2, dim> straini = 0.5 * (fe_fv[displacements].gradient(i, point) + transpose(fe_fv[displacements].gradient(i, point)));
-
-                            for (unsigned int j = 0; j < n_facet_dofs; ++j)
-                            {
-                                Tensor<2, dim> strainj = 0.5 * (fe_fv[displacements].gradient(j, point) + transpose(fe_fv[displacements].gradient(j, point)));
-
-                                copy_data.cell_matrix(i, j) +=
-                                    ((-fe_fv[displacements].value(i, point) * normals[point]) *
-                                         (((lambda * trace(strainj) * Identity + 2 * mu * strainj) * normals[point]) * normals[point])
-
-                                     + par.symmetry *
-                                           (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                           (fe_fv[displacements].value(j, point) * normals[point]) // Symetry term
-
-                                     + penalty * (fe_fv[displacements].value(i, point) * normals[point]) * (fe_fv[displacements].value(j, point) * normals[point])) *
-                                    JxW[point];
-                            }
-
-                            copy_data.cell_rhs(i) +=
-
-                                -(
-                                    -(fe_fv[displacements].value(i, point) * normals[point]) *
-                                        (((lambda * trace(strain) * Identity + 2 * mu * strain) * normals[point]) * normals[point])
-
-                                    + par.symmetry *
-                                          (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                          (old_solution_values[point] * normals[point]) // Symetry term
-
-                                    + penalty * (fe_fv[displacements].value(i, point) * normals[point]) * (old_solution_values[point] * normals[point])) *
-                                    JxW[point]
-
-                                + par.symmetry * (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                      disp * normals[point] * JxW[point] // Symetry term
-
-                                + penalty *
-                                      fe_fv[displacements].value(i, point) * normals[point] * disp * normals[point] *
-                                      JxW[point]; // dx
-                        }
-                    }
-            }
-
-            if (par.geometry == "EN_10")
-            {
-                double h = 55.0, l = 240.0, b = 10.0;
-
-                Tensor<1, dim> compressive_force;
-                compressive_force[1] = par.testing_F;
-
-                if (cell->face(face_no)->boundary_id() == 0 && std::abs(cell->face(face_no)->center()[1]) < h / 2 && cell->material_id() == 1)
-                    for (unsigned int point = 0; point < n_q_points; ++point)
-                    {
-                        Tensor<2, dim> strain = 0.5 * (gradu[point] + transpose(gradu[point]));
-
-                        for (unsigned int i = 0; i < n_facet_dofs; ++i)
-                        {
-                            Tensor<2, dim> straini = 0.5 * (fe_fv[displacements].gradient(i, point) + transpose(fe_fv[displacements].gradient(i, point)));
-
-                            for (unsigned int j = 0; j < n_facet_dofs; ++j)
-                            {
-                                Tensor<2, dim> strainj = 0.5 * (fe_fv[displacements].gradient(j, point) + transpose(fe_fv[displacements].gradient(j, point)));
-
-                                copy_data.cell_matrix(i, j) +=
-                                    ((-fe_fv[displacements].value(i, point) * normals[point]) *
-                                         (((lambda * trace(strainj) * Identity + 2 * mu * strainj) * normals[point]) * normals[point])
-
-                                     + par.symmetry *
-                                           (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                           (fe_fv[displacements].value(j, point) * normals[point]) // Symetry term
-
-                                     + penalty * (fe_fv[displacements].value(i, point) * normals[point]) * (fe_fv[displacements].value(j, point) * normals[point])) *
-                                    JxW[point];
-                            }
-
-                            copy_data.cell_rhs(i) +=
-
-                                -(
-                                    -(fe_fv[displacements].value(i, point) * normals[point]) *
-                                        (((lambda * trace(strain) * Identity + 2 * mu * strain) * normals[point]) * normals[point])
-
-                                    + par.symmetry *
-                                          (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                          (old_solution_values[point] * normals[point]) // Symetry term
-
-                                    + penalty * (fe_fv[displacements].value(i, point) * normals[point]) * (old_solution_values[point] * normals[point])) *
-                                    JxW[point]
-
-                                + par.symmetry * (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                      disp * normals[point] * JxW[point] // Symetry term
-
-                                + penalty *
-                                      fe_fv[displacements].value(i, point) * normals[point] * disp * normals[point] *
-                                      JxW[point]; // dx
-                        }
-                    }
-
-                if ((cell->face(face_no)->boundary_id() == 1 && std::abs(cell->face(face_no)->center()[1]) > h / 2 + b / 2 && cell->material_id() == 1) || (cell->face(face_no)->boundary_id() == 2))
-                    for (unsigned int point = 0; point < n_q_points; ++point)
-                    {
-                        Tensor<2, dim> strain = 0.5 * (gradu[point] + transpose(gradu[point]));
-
-                        for (unsigned int i = 0; i < n_facet_dofs; ++i)
-                        {
-                            Tensor<2, dim> straini = 0.5 * (fe_fv[displacements].gradient(i, point) + transpose(fe_fv[displacements].gradient(i, point)));
-
-                            for (unsigned int j = 0; j < n_facet_dofs; ++j)
-                            {
-                                Tensor<2, dim> strainj = 0.5 * (fe_fv[displacements].gradient(j, point) + transpose(fe_fv[displacements].gradient(j, point)));
-
-                                copy_data.cell_matrix(i, j) +=
-                                    ((-fe_fv[displacements].value(i, point) * normals[point]) *
-                                         (((lambda * trace(strainj) * Identity + 2 * mu * strainj) * normals[point]) * normals[point])
-
-                                     + par.symmetry *
-                                           (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                           (fe_fv[displacements].value(j, point) * normals[point]) // Symetry term
-
-                                     + penalty * (fe_fv[displacements].value(i, point) * normals[point]) * (fe_fv[displacements].value(j, point) * normals[point])) *
-                                    JxW[point];
-                            }
-
-                            copy_data.cell_rhs(i) +=
-
-                                -(
-                                    -(fe_fv[displacements].value(i, point) * normals[point]) *
-                                        (((lambda * trace(strain) * Identity + 2 * mu * strain) * normals[point]) * normals[point])
-
-                                    + par.symmetry *
-                                          (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                          (old_solution_values[point] * normals[point]) // Symetry term
-
-                                    + penalty * (fe_fv[displacements].value(i, point) * normals[point]) * (old_solution_values[point] * normals[point])) *
-                                    JxW[point]
-
-                                + par.symmetry * (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                      disp * normals[point] * JxW[point] * 0.0 // Symetry term
-
-                                + penalty *
-                                      fe_fv[displacements].value(i, point) * normals[point] * disp * normals[point] * 0.0 *
+                                      fe_fv[displacements].value(i, point) * 0 * disp *
                                       JxW[point]; // dx
                         }
                     }
 
                 if (cell->face(face_no)->boundary_id() == 3)
                     for (unsigned int point = 0; point < n_q_points; ++point)
-                        for (unsigned int i = 0; i < n_facet_dofs; ++i)
-                            copy_data.cell_rhs(i) += fe_fv[displacements].value(i, point) * compressive_force * JxW[point]; // dx
-            }
-
-            if (par.geometry == "shaft")
-            {
-
-                Tensor<1, dim> compressive_force;
-                if (cell->face(face_no)->boundary_id() == 0)
-                    compressive_force[0] = 0.7;
-                else
-                    compressive_force[0] = -0.7;
-
-                if (cell->face(face_no)->boundary_id() == 3 && cell->material_id() == 1)
-                    for (unsigned int point = 0; point < n_q_points; ++point)
                     {
                         Tensor<2, dim> strain = 0.5 * (gradu[point] + transpose(gradu[point]));
 
@@ -1168,66 +715,13 @@ namespace Friction_adaptivity_everywhere
                                     JxW[point]
 
                                 + par.symmetry * (lambda * trace(strain_i) * Identity + 2 * mu * strain_i) * normals[point] *
-                                      ((cell->face(face_no)->boundary_id() - 2) * disp) * JxW[point] // Symetry term
+                                      ((1) * disp) * JxW[point] // Symetry term
 
                                 + penalty *
-                                      fe_fv[displacements].value(i, point) * ((cell->face(face_no)->boundary_id() - 2) * disp) *
+                                      fe_fv[displacements].value(i, point) * ((1) * disp) *
                                       JxW[point]; // dx
                         }
                     }
-
-                if (cell->face(face_no)->boundary_id() == 2 && cell->material_id() != 1)
-
-                    for (unsigned int point = 0; point < n_q_points; ++point)
-                    {
-                        Tensor<2, dim> strain = 0.5 * (gradu[point] + transpose(gradu[point]));
-
-                        for (unsigned int i = 0; i < n_facet_dofs; ++i)
-                        {
-                            Tensor<2, dim> straini = 0.5 * (fe_fv[displacements].gradient(i, point) + transpose(fe_fv[displacements].gradient(i, point)));
-
-                            for (unsigned int j = 0; j < n_facet_dofs; ++j)
-                            {
-                                Tensor<2, dim> strainj = 0.5 * (fe_fv[displacements].gradient(j, point) + transpose(fe_fv[displacements].gradient(j, point)));
-
-                                copy_data.cell_matrix(i, j) +=
-                                    ((-fe_fv[displacements].value(i, point) * normals[point]) *
-                                         (((lambda * trace(strainj) * Identity + 2 * mu * strainj) * normals[point]) * normals[point])
-
-                                     + par.symmetry *
-                                           (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                           (fe_fv[displacements].value(j, point) * normals[point]) // Symetry term
-
-                                     + penalty * (fe_fv[displacements].value(i, point) * normals[point]) * (fe_fv[displacements].value(j, point) * normals[point])) *
-                                    JxW[point];
-                            }
-
-                            copy_data.cell_rhs(i) +=
-
-                                -(
-                                    -(fe_fv[displacements].value(i, point) * normals[point]) *
-                                        (((lambda * trace(strain) * Identity + 2 * mu * strain) * normals[point]) * normals[point])
-
-                                    + par.symmetry *
-                                          (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                          (old_solution_values[point] * normals[point]) // Symetry term
-
-                                    + penalty * (fe_fv[displacements].value(i, point) * normals[point]) * (old_solution_values[point] * normals[point])) *
-                                    JxW[point]
-
-                                + par.symmetry * (((lambda * trace(straini) * Identity + 2 * mu * straini) * normals[point]) * normals[point]) *
-                                      disp * normals[point] * JxW[point] * 0.0 // Symetry term
-
-                                + penalty *
-                                      fe_fv[displacements].value(i, point) * normals[point] * disp * normals[point] * 0.0 *
-                                      JxW[point]; // dx
-                        }
-                    }
-
-                if (cell->face(face_no)->boundary_id() == 0 || cell->face(face_no)->boundary_id() == 1)
-                    for (unsigned int point = 0; point < n_q_points; ++point)
-                        for (unsigned int i = 0; i < n_facet_dofs; ++i)
-                            copy_data.cell_rhs(i) += fe_fv[displacements].value(i, point) * compressive_force * JxW[point]; // dx
             }
         };
 
@@ -1335,6 +829,7 @@ namespace Friction_adaptivity_everywhere
                 Rot[0][1] = -sign_normalx * std::sqrt(1 - normaly * normaly);
                 Rot[1][0] = sign_normalx * std::sqrt(1 - normaly * normaly);
                 Rot[1][1] = normaly;
+
                 Rot = -Rot;
 
                 law_g = Rot * old_solution_jumps[point];
@@ -1432,30 +927,6 @@ namespace Friction_adaptivity_everywhere
                 // if (non_lin == 1)
                 if (quadrature_points_history[point].is_damaged && damage > 1 - 1e-12)
                     quadrature_points_history[point].is_fully_damaged = true;
-
-                if (par.geometry == "ENF" && cell->material_id() != ncell->material_id() && cell->face(f)->center()[0] > 105)
-                {
-                    quadrature_points_history[point].is_fully_damaged = true;
-                    quadrature_points_history[point].is_damaged = true;
-                    quadrature_points_history[point].max_damage = 1.0;
-                }
-
-                if (par.geometry == "EN_10")
-                {
-                    // if only one inerface
-                    if (par.is_everywhere == false)
-                        if (cell->face(f)->center()[1] > 55 / 2)
-                            quadrature_points_history[point].is_damaged = false;
-
-                    // if both interfaces
-                    // if (par.is_everywhere == false)
-                    //     if (cell->material_id() != ncell->material_id())
-                    //         quadrature_points_history[point].is_damaged = true;
-
-                    if (par.is_everywhere == true)
-                        if (cell->material_id() == 1 && ncell->material_id() == 1)
-                            quadrature_points_history[point].is_damaged = false;
-                }
 
                 if (quadrature_points_history[point].is_fully_damaged)
                     damage = 1.0;
@@ -1605,7 +1076,7 @@ namespace Friction_adaptivity_everywhere
                 }
 
                 TCZ[0][0] += par.jacobian_reg3 / (std::sqrt(std::pow(par.displacementx, 2) + std::pow(par.displacementy, 2)));
-                TCZ[1][1] += par.jacobian_reg3 / (std::sqrt(std::pow(par.displacementx, 2) + std::pow(par.displacementy, 2)));
+                // TCZ[1][1] += par.jacobian_reg3 / (std::sqrt(std::pow(par.displacementx, 2) + std::pow(par.displacementy, 2)));
 
                 if (par.is_everywhere == false)
                     if (cell->material_id() == ncell->material_id())
@@ -1616,14 +1087,6 @@ namespace Friction_adaptivity_everywhere
                         quadrature_points_history[point].damage = 0;
                     }
 
-                if (par.geometry == "matrix")
-                {
-                    if (cell->material_id() != 1 && ncell->material_id() != 1)
-                        quadrature_points_history[point].is_damaged = false;
-
-                    if (std::abs(cell->center()[1] - 0.5) > 0.48)
-                        quadrature_points_history[point].is_damaged = false;
-                }
                 // if (cell->material_id() != ncell->material_id())
                 // if (q_points[point][1] > 0.91)
                 // if (quadrature_points_history[point].is_reunload)
@@ -1760,7 +1223,7 @@ namespace Friction_adaptivity_everywhere
     }
 
     template <int dim>
-    void Friction_adaptivity_everywhere<dim>::solve(double prev_error, const unsigned int non_lin)
+    void Rewrite<dim>::solve(double prev_error)
     {
 
         TimerOutput::Scope t(computing_timer, "solve");
@@ -1772,46 +1235,32 @@ namespace Friction_adaptivity_everywhere
 
         if (par.with_adaptive_relaxation)
         {
-            double min_newton_relaxation = 0.05;
-
-            if (non_lin == 1)
-                newton_relaxation = par.newton_relaxation;
-
-            if (non_lin == 1 || newton_relaxation > min_newton_relaxation * 1.2 + 1e-10)
-                stagnation_counter = 0;
-
-
 
             if (system_rhs.l2_norm() > prev_error)
                 newton_relaxation = newton_relaxation * 0.75;
-            else if (system_rhs.l2_norm() < 5000)
+            else if (system_rhs.l2_norm() < 1000)
             {
-                if (newton_relaxation > 0.3)
-                    newton_relaxation = newton_relaxation * 1.15;
-                else
+                if (newton_relaxation > 0.4)
                     newton_relaxation = newton_relaxation * 1.2;
+                else
+                    newton_relaxation = newton_relaxation * 1.1;
             }
 
-            if (system_rhs.l2_norm() > prev_error && newton_relaxation < min_newton_relaxation + 1e-10)
-                stagnation_counter++;
-
-            if (newton_relaxation < min_newton_relaxation)
-                newton_relaxation = min_newton_relaxation;
+            if (newton_relaxation < 0.1)
+                newton_relaxation = 0.1;
 
             if (newton_relaxation > 1.0)
                 newton_relaxation = 1.0;
         }
 
         pcout << "newton_relaxation = " << newton_relaxation << "\n";
-        pcout << "stagnation_counter = " << stagnation_counter << "\n";
-
 
         distributed_solution.add(newton_relaxation, distributed_newton_update);
         ghosted_solution = distributed_solution;
     }
 
     template <int dim>
-    double Friction_adaptivity_everywhere<dim>::calculate_damage_error()
+    double Rewrite<dim>::calculate_damage_error()
     {
         double damage_error = 0;
         unsigned int counter = 0;
@@ -1858,7 +1307,7 @@ namespace Friction_adaptivity_everywhere
     }
 
     template <int dim>
-    void Friction_adaptivity_everywhere<dim>::refine_mesh()
+    void Rewrite<dim>::refine_mesh()
     {
         TimerOutput::Scope t(computing_timer, "Refine");
         double counter = 0;
@@ -1943,14 +1392,6 @@ namespace Friction_adaptivity_everywhere
                     if (par.geometry == "EN_10")
                         if (par.is_everywhere == false)
                             if (cell->face(f)->center()[1] > 55 / 2)
-                            {
-                                cell->clear_refine_flag();
-                                ncell->clear_refine_flag();
-                            }
-
-                    if (par.geometry == "EN_10")
-                        if (par.is_everywhere == true)
-                            if (cell->material_id()==1 && ncell->material_id()==1)
                             {
                                 cell->clear_refine_flag();
                                 ncell->clear_refine_flag();
@@ -2251,7 +1692,7 @@ namespace Friction_adaptivity_everywhere
     }
 
     template <int dim>
-    void Friction_adaptivity_everywhere<dim>::output_results(const unsigned int cycle) const
+    void Rewrite<dim>::output_results(const unsigned int cycle) const
     {
         if (cycle != 0)
         {
@@ -2288,13 +1729,13 @@ namespace Friction_adaptivity_everywhere
 
             data_out.build_patches();
 
-            data_out.write_vtu_with_pvtu_record(par.output_directory + "/", "solution" + par.file_name, cycle, mpi_communicator, 3, 0);
+            data_out.write_vtu_with_pvtu_record(par.output_directory + "/", "solution", cycle, mpi_communicator, 3, 0);
         }
     }
 
     template <int dim>
-    void Friction_adaptivity_everywhere<dim>::reaction_and_traction(const types::boundary_id &boundary_id, Tensor<1, dim> &reaction_stress,
-                                                                    Tensor<1, dim> &interface_jump, Tensor<1, dim> &interface_stress)
+    void Rewrite<dim>::reaction_and_traction(const types::boundary_id &boundary_id, Tensor<1, dim> &reaction_stress,
+                                             Tensor<1, dim> &interface_jump, Tensor<1, dim> &interface_stress)
     {
         TimerOutput::Scope t(computing_timer, "other");
         reaction_stress = 0.0;
@@ -2329,9 +1770,9 @@ namespace Friction_adaptivity_everywhere
             double rad = 0.5;
 
             // if ((cell->face(face_no)->boundary_id() == boundary_id) && cell->material_id()==1)
-            // if ((cell->face(face_no)->boundary_id() == boundary_id))
-            //  if (cell->face(face_no)->boundary_id() == boundary_id && (std::abs(cell->face(face_no)->center()[0] - 70) < rad / 2))
-            if (cell->face(face_no)->boundary_id() == 0 && std::abs(cell->face(face_no)->center()[1]) < 55 / 2 && cell->material_id() == 1)
+            if ((cell->face(face_no)->boundary_id() == boundary_id))
+                // if (cell->face(face_no)->boundary_id() == boundary_id && (std::abs(cell->face(face_no)->center()[0] - 70) < rad / 2))
+                // if (cell->face(face_no)->boundary_id() == 0 && std::abs(cell->face(face_no)->center()[1]) < 55 / 2 && cell->material_id() == 1)
                 for (unsigned int point = 0; point < n_q_points; ++point)
                 {
 
@@ -2384,7 +1825,6 @@ namespace Friction_adaptivity_everywhere
             if (cell->material_id() != ncell->material_id())
                 for (unsigned int point = 0; point < n_q_points; ++point)
                 {
-
                     counter++;
 
                     Tensor<2, dim> strain1 = 0.5 * (grads_1[point] + transpose(grads_1[point]));
@@ -2405,6 +1845,7 @@ namespace Friction_adaptivity_everywhere
                     // Local cordinates
                     interface_jump[0] += (jumpu[point] * normals[point]);
                     interface_jump[1] += (jumpu[point] * tangential);
+
                 }
         };
 
@@ -2429,7 +1870,7 @@ namespace Friction_adaptivity_everywhere
     }
 
     template <int dim>
-    void Friction_adaptivity_everywhere<dim>::q_point_PPV(const unsigned int cycle) const
+    void Rewrite<dim>::q_point_PPV(const unsigned int cycle) const
     {
         const auto face_worker = [&](const auto &cell,
                                      const unsigned int &f,
@@ -2451,7 +1892,7 @@ namespace Friction_adaptivity_everywhere
             {
                 std::ofstream q_point;
 
-                q_point.open(par.output_directory + "/cycle_" + par.file_name + std::to_string(cycle) + ".txt", std::ios_base::app);
+                q_point.open(par.output_directory + "/cycle_" + std::to_string(cycle) + ".txt", std::ios_base::app);
                 q_point << quadrature_points_history[point].q_cordinates[0] << "," << quadrature_points_history[point].q_cordinates[1] << ","
                         << quadrature_points_history[point].damage
                         << "\n";
@@ -2463,7 +1904,7 @@ namespace Friction_adaptivity_everywhere
         {
             std::ofstream q_point;
 
-            q_point.open(par.output_directory + "/cycle_" + par.file_name + std::to_string(cycle) + ".txt");
+            q_point.open(par.output_directory + "/cycle_" + std::to_string(cycle) + ".txt");
             q_point << "x"
                     << ","
                     << "y"
@@ -2485,7 +1926,7 @@ namespace Friction_adaptivity_everywhere
     }
 
     template <int dim>
-    void Friction_adaptivity_everywhere<dim>::run()
+    void Rewrite<dim>::run()
     {
         if (par.geometry == "reactangle")
         {
@@ -2504,85 +1945,15 @@ namespace Friction_adaptivity_everywhere
                     cell->set_material_id(2);
             }
         }
-        else if (par.geometry == "half_matrix" || par.geometry == "matrix" || par.geometry == "hole")
+        else if (par.geometry == "matrix")
         {
             GridIn<2> gridin;
             gridin.attach_triangulation(triangulation);
             std::ifstream f;
-            if (par.geometry == "half_matrix")
-                f.open("half_matrix.msh");
-            else if (par.geometry == "matrix")
-                f.open("matrix2.msh");
-            else if (par.geometry == "hole")
-                f.open("hole.msh");
+            f.open("matrix2.msh");
+
             gridin.read_msh(f);
             triangulation.refine_global(par.initial_refinement);
-        }
-        else if (par.geometry == "ENF")
-        {
-            Point<dim> P1(0, 0), P2(140, 6);
-            std::vector<unsigned int> repetitions{70, 3};
-            GridGenerator::subdivided_hyper_rectangle(triangulation, repetitions, P1, P2, true);
-            triangulation.refine_global(par.initial_refinement);
-
-            Point<dim> p;
-            for (const auto &cell : triangulation.active_cell_iterators())
-            {
-                p = cell->center();
-                if (p[1] > 3)
-                    cell->set_material_id(1);
-                else
-                    cell->set_material_id(2);
-            }
-        }
-        else if (par.geometry == "EN_10")
-        {
-            double h = 55.0, l = 240.0, b = 10.0;
-            Point<dim> P1(0, 0), P2(l, h + h / 2 + b);
-            std::vector<unsigned int> repetitions{2, 1};
-            GridGenerator::subdivided_hyper_rectangle(triangulation, repetitions, P1, P2, true);
-            triangulation.refine_global(par.initial_refinement);
-
-            Point<dim> p;
-            for (const auto &cell : triangulation.active_cell_iterators())
-            {
-                p = cell->center();
-                if (std::abs(p[1] - h / 2 - b / 2) > b)
-                    cell->set_material_id(1);
-                else
-                {
-                    cell->set_material_id(2);
-                }
-            }
-
-            //  for (unsigned int i = 0; i < 1; ++i)
-            //  {
-            //      for (const auto &cell : triangulation.active_cell_iterators())
-            //      {
-            //          if (cell->material_id() == 2)
-            //              cell->set_refine_flag();
-            //      }
-            //      triangulation.execute_coarsening_and_refinement();
-            // }
-        }
-        else if (par.geometry == "shaft")
-        {
-            Point<dim> P1(0, 0), P2(4, 1);
-            std::vector<unsigned int> repetitions{4, 1};
-            GridGenerator::subdivided_hyper_rectangle(triangulation, repetitions, P1, P2, true);
-            triangulation.refine_global(par.initial_refinement);
-
-            Point<dim> p;
-            for (const auto &cell : triangulation.active_cell_iterators())
-            {
-                p = cell->center();
-                if (std::abs(p[0] - 2.0) < 0.25)
-                    cell->set_material_id(1);
-                else
-                {
-                    cell->set_material_id(2);
-                }
-            }
         }
         else
             throw std::runtime_error("no input mesh");
@@ -2599,11 +1970,11 @@ namespace Friction_adaptivity_everywhere
 
         if (par.is_distorted)
         {
-            GridTools::transform(&grid_y_transform<dim>, triangulation);
+            // GridTools::transform(&grid_y_transform<dim>, triangulation);
 
-            // GridTools::distort_random(0.1, triangulation, true, 2882);
+            GridTools::distort_random(0.35, triangulation, true, par.testing_I);
             // triangulation.refine_global(1);
-            // GridTools::rotate(-M_PI/2, triangulation);
+            //  GridTools::rotate(-M_PI/2, triangulation);
         }
 
         setup_quadrature_point_history();
@@ -2665,17 +2036,8 @@ namespace Friction_adaptivity_everywhere
                     max_non_lin_at_cycle = cycle;
 
                 if (par.ignore_non_convergence == false)
-                    if (max_nonlin_output >= max_nonlin_iter - 1)
+                    if (max_nonlin_output == max_nonlin_iter - 1)
                         throw std::runtime_error("max non_lin iterations reached b4 convergence");
-
-                // untested 
-                if (par.ignore_non_convergence == true)
-                    if (stagnation_counter > 50)
-                    {   
-                        stagnation_counter=0;
-                        pcout<<"stagnation caught residual is " << system_rhs.l2_norm() << "\n"; 
-                        break; 
-                    }
 
                 non_lin++;
                 assemble_system(cycle, non_lin, error, doing_external_iterations, external_iterations);
@@ -2687,9 +2049,9 @@ namespace Friction_adaptivity_everywhere
                 if (error > par.error)
                 {
                     pcout << "  external_iterations = " << external_iterations << std::endl;
-                    pcout << "  non lin = " << non_lin << "  cycle = " << cycle << std::endl;
+                    pcout << "  non lin = " << non_lin << std::endl;
 
-                    solve(prev_error, non_lin);
+                    solve(prev_error);
                     pcout << "  update l2_norm " << distributed_newton_update.l2_norm() << std::endl;
                 }
                 else if (doing_external_iterations)
@@ -2761,6 +2123,6 @@ namespace Friction_adaptivity_everywhere
         computing_timer.print_summary();
         computing_timer.reset();
     }
-} // namespace namespace Friction_adaptivity_everywhere
+} // namespace namespace Rewrite
 
-#endif //  Friction_adaptivity_everywhere_H
+#endif //  Rewrite_H

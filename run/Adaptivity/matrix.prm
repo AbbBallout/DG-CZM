@@ -5,7 +5,7 @@ subsection main
 	set degree           = 2
 	set quadrature       = gauss       #gauss|lobatto|gauss-reduced
 	set symmetry         = 0
- 	set penalty_factor   = 10
+ 	set penalty_factor   = 20
 
 	subsection geometry
 		set geometry = matrix       #reactangle|half_matrix|matrix|hole|ENF|EN_10
@@ -39,7 +39,7 @@ subsection main
 		set G_cn  = 0.25
 		
 		set penetration_penalty = 1e+4
-		set viscosity = 0
+		set viscosity = 0.016
 
 	end
 	
@@ -49,9 +49,9 @@ subsection main
 		set with_adaptive_relaxation = true
 
 		####
-		set jacobian_reg1  = 0.0    # sth like 1.0
-		set jacobian_reg2  = 0.0    # sth like 0.1 
-		set jacobian_reg3  = 0.0    # inspired from viscosity
+		set jacobian_reg1  = 1.0    # sth like 1.0
+		set jacobian_reg2  = 0.1   # sth like 0.1 
+		set jacobian_reg3  = 0.1    # inspired from viscosity
  
 		####
 		set always_check_for_damage_and_unloading = false
@@ -62,26 +62,26 @@ subsection main
 		set damage_error          = 1e-5
 
 		####
-		set ignore_non_convergence = false
+		set ignore_non_convergence = true
 	end
 
 	subsection adaptivity
 	 	set with_adaptivity  = true
-	 	set threshold_stress_factor = 0.8    #less than one
+	 	set threshold_stress_factor = 0.98    #less than one
 	 	set max_cell_level  = 1
 	end
 	
 	
 	subsection solver_control
-		set cycles= 450
-		set max_nonlin_iter = 200
+		set cycles= 420
+		set max_nonlin_iter = 120
 		set error = 1e-7
 		set displacementx =  0
-		set displacementy = 2e-4
+		set displacementy = 2.0e-5
 		set unloading = 2699
 		set reloading = 4599
 		set output_directory = ./outputmatrix
-		set file_name = forces99
+		set file_name = adaptive_degree2
 		set output_frequency = 1
 	end	
 end

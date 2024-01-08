@@ -10,6 +10,7 @@ foreach(_target IN ITEMS
     CZMs2
     deal
     Adaptivity
+    Rewrite
     )
   add_subdirectory(${_target})
   install(TARGETS ${_target})
